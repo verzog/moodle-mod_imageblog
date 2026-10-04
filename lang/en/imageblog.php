@@ -26,6 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $string['alldiagnoses'] = 'All diagnoses';
 $string['bestanswer'] = 'Best answer';
+$string['bestanswerlocked'] = 'Another change to the best answer is in progress. Please try again in a moment.';
 $string['bestfactor'] = 'Best-answer factor';
 $string['bestfactor_help'] = 'Fraction of full marks for the diagnosis the teacher marks as best. It overrides the correct and participation factors for that one submission, then is scaled by the case difficulty and capped at the maximum grade.';
 $string['bestupdated'] = 'The best answer has been updated.';

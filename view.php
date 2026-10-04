@@ -59,10 +59,21 @@ if ($canreveal && !empty($imageblog->revealed) && $setbest >= 0 && confirm_sessk
     $valid = ($setbest === 0)
         || $DB->record_exists('imageblog_diagnoses', ['id' => $setbest, 'imageblogid' => $imageblog->id]);
     if ($valid) {
-        $DB->set_field('imageblog', 'bestdiagnosisid', $setbest, ['id' => $imageblog->id]);
-        // Re-read the instance so the regrade runs against the persisted state.
-        $imageblog = $DB->get_record('imageblog', ['id' => $imageblog->id], '*', MUST_EXIST);
-        imageblog_update_grades($imageblog);
+        // Serialize the write and regrade so two concurrent teacher actions cannot
+        // leave the stored selection and the gradebook awarding different bonuses.
+        $lockfactory = \core\lock\lock_config::get_lock_factory('mod_imageblog_bestanswer');
+        $lock = $lockfactory->get_lock('imageblog_' . $imageblog->id, 10);
+        if (!$lock) {
+            redirect($pageurl, get_string('bestanswerlocked', 'mod_imageblog'), null, \core\output\notification::NOTIFY_WARNING);
+        }
+        try {
+            $DB->set_field('imageblog', 'bestdiagnosisid', $setbest, ['id' => $imageblog->id]);
+            // Re-read inside the lock so the regrade runs against the persisted state.
+            $imageblog = $DB->get_record('imageblog', ['id' => $imageblog->id], '*', MUST_EXIST);
+            imageblog_update_grades($imageblog);
+        } finally {
+            $lock->release();
+        }
         redirect($pageurl, get_string('bestupdated', 'mod_imageblog'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
 }
