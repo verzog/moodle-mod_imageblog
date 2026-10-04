@@ -65,6 +65,26 @@ class mod_imageblog_mod_form extends moodleform_mod {
         $mform->addElement('textarea', 'revealtext', get_string('revealtext', 'mod_imageblog'), ['rows' => 6, 'cols' => 60]);
         $mform->setType('revealtext', PARAM_TEXT);
 
+        $levels = [1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5];
+        $mform->addElement('select', 'casedifficulty', get_string('casedifficulty', 'mod_imageblog'), $levels);
+        $mform->setType('casedifficulty', PARAM_INT);
+        $mform->setDefault('casedifficulty', 1);
+        $mform->addHelpButton('casedifficulty', 'casedifficulty', 'mod_imageblog');
+
+        $mform->addElement('text', 'difficultyscale', get_string('difficultyscale', 'mod_imageblog'), ['size' => 32]);
+        $mform->setType('difficultyscale', PARAM_TEXT);
+        $mform->setDefault('difficultyscale', '1, 1.5, 2, 3, 5');
+        $mform->addRule('difficultyscale', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
+        $mform->addHelpButton('difficultyscale', 'difficultyscale', 'mod_imageblog');
+
+        $mform->addElement('text', 'correctfactor', get_string('correctfactor', 'mod_imageblog'), ['size' => 8]);
+        $mform->setType('correctfactor', PARAM_FLOAT);
+        $mform->setDefault('correctfactor', 1.0);
+
+        $mform->addElement('text', 'participationfactor', get_string('participationfactor', 'mod_imageblog'), ['size' => 8]);
+        $mform->setType('participationfactor', PARAM_FLOAT);
+        $mform->setDefault('participationfactor', 0.5);
+
         $this->standard_grading_coursemodule_elements();
         $this->standard_coursemodule_elements();
 

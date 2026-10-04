@@ -109,6 +109,19 @@ jobs:
           sudo locale-gen en_AU.UTF-8
           echo "NVM_DIR=$HOME/.nvm" >> $GITHUB_ENV
 
+      - name: Add the local_imageblog dependency
+        run: |
+          attempts=0
+          until moodle-plugin-ci add-plugin verzog/moodle-local_imageblog; do
+            attempts=$((attempts + 1))
+            if [ $attempts -ge 3 ]; then
+              echo "add-plugin failed after $attempts attempts" >&2
+              exit 1
+            fi
+            echo "add-plugin attempt $attempts failed, retrying..."
+            sleep $((attempts * 5))
+          done
+
       - name: Install moodle-plugin-ci
         id: install
         run: |

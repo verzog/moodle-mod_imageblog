@@ -179,9 +179,13 @@ function imageblog_get_user_grades($imageblog, $userid = 0) {
 
     $grades = [];
     foreach ($DB->get_records('imageblog_diagnoses', $params) as $record) {
-        $fraction = \mod_imageblog\local\case_engine::score_fraction(
+        $fraction = \mod_imageblog\local\grader::grade_fraction(
             (string) $record->diagnosis,
-            (string) $imageblog->correctdiagnosis
+            (string) $imageblog->correctdiagnosis,
+            (int) $imageblog->casedifficulty,
+            (string) $imageblog->difficultyscale,
+            (float) $imageblog->participationfactor,
+            (float) $imageblog->correctfactor
         );
         $grades[$record->userid] = (object) [
             'userid' => $record->userid,
