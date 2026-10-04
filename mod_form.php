@@ -114,6 +114,19 @@ class mod_imageblog_mod_form extends moodleform_mod {
             $errors['correctdiagnosis'] = get_string('maximumchars', '', 255);
         }
 
+        // Apply the same server-side length guard to the difficulty scale.
+        if (isset($data['difficultyscale']) && core_text::strlen($data['difficultyscale']) > 255) {
+            $errors['difficultyscale'] = get_string('maximumchars', '', 255);
+        }
+
+        // Scoring factors are fractions of full marks; a negative factor is
+        // meaningless (the engine floors it to zero), so reject it outright.
+        foreach (['participationfactor', 'correctfactor'] as $factorfield) {
+            if (isset($data[$factorfield]) && (float) $data[$factorfield] < 0) {
+                $errors[$factorfield] = get_string('factornotnegative', 'mod_imageblog');
+            }
+        }
+
         return $errors;
     }
 }

@@ -37,6 +37,7 @@ $string['diagnosis'] = 'Your diagnosis';
 $string['diagnosissaved'] = 'Your diagnosis has been saved.';
 $string['difficultyscale'] = 'Difficulty scale';
 $string['difficultyscale_help'] = 'Comma-separated multipliers, one per difficulty level (level 1 first), e.g. "1, 1.5, 2, 3, 5". The multiplier for the selected case difficulty scales the score before the maximum-grade cap.';
+$string['factornotnegative'] = 'The factor cannot be negative.';
 $string['gradescalesnotsupported'] = 'This activity grades on points only. Choose "Point" and set a maximum grade.';
 $string['imageblog:addinstance'] = 'Add a new image blog activity';
 $string['imageblog:reveal'] = 'Reveal the case outcome';
