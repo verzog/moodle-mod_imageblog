@@ -26,7 +26,7 @@ namespace mod_imageblog\local;
  * multipliers and a best-answer bonus will layer on top of this fraction.
  *
  * @package    mod_imageblog
- * @copyright  2026 Vernon Apain / Educheckout
+ * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class case_engine {

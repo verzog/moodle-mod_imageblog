@@ -18,7 +18,7 @@
  * Display a single image blog activity: the case, the diagnosis form and the outcome.
  *
  * @package    mod_imageblog
- * @copyright  2026 Vernon Apain / Educheckout
+ * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
