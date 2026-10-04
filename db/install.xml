@@ -8,11 +8,11 @@
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The course this activity belongs to."/>
-        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="The activity name."/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="The activity name."/>
         <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The activity introduction."/>
         <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The format of the intro field."/>
         <FIELD NAME="casequestion" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The clinical case prompt shown to readers."/>
-        <FIELD NAME="correctdiagnosis" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="The expected diagnosis used for scoring."/>
+        <FIELD NAME="correctdiagnosis" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="The expected diagnosis used for scoring."/>
         <FIELD NAME="revealtext" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The outcome explanation shown after the case is revealed."/>
         <FIELD NAME="revealed" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whether the outcome has been revealed (0 or 1)."/>
         <FIELD NAME="grade" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" COMMENT="The maximum grade (points); 0 disables grading."/>
