@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="mod/imageblog/db" VERSION="20261004" COMMENT="Database schema for mod_imageblog."
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="imageblog" COMMENT="Image blog activity instances (one clinical case per instance).">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The course this activity belongs to."/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="The activity name."/>
+        <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The activity introduction."/>
+        <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The format of the intro field."/>
+        <FIELD NAME="casequestion" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The clinical case prompt shown to readers."/>
+        <FIELD NAME="correctdiagnosis" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="The expected diagnosis used for scoring."/>
+        <FIELD NAME="revealtext" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The outcome explanation shown after the case is revealed."/>
+        <FIELD NAME="revealed" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whether the outcome has been revealed (0 or 1)."/>
+        <FIELD NAME="grade" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" COMMENT="The maximum grade (points); 0 disables grading."/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time the instance was created."/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time the instance was last modified."/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_course" TYPE="foreign" FIELDS="course" REFTABLE="course" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="imageblog_diagnoses" COMMENT="Reader-submitted diagnoses, one per user per instance.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="imageblogid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The image blog instance this diagnosis belongs to."/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The user who submitted the diagnosis."/>
+        <FIELD NAME="diagnosis" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="The submitted diagnosis text."/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time the diagnosis was first submitted."/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time the diagnosis was last updated."/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_imageblog" TYPE="foreign" FIELDS="imageblogid" REFTABLE="imageblog" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="imageblogid-userid" UNIQUE="true" FIELDS="imageblogid, userid"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

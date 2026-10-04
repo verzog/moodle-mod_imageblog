@@ -1,0 +1,171 @@
+name: moodle-ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+env:
+  TZ: Australia/Sydney
+
+concurrency:
+  group: moodle-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+
+    services:
+      postgres:
+        # Moodle 5.3 requires PostgreSQL 17+, so the service tracks the 17 major
+        # tag. Older Moodle branches accept it (minimum-version check only).
+        image: postgres:17
+        env:
+          POSTGRES_USER: 'postgres'
+          POSTGRES_HOST_AUTH_METHOD: 'trust'
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
+      mysql:
+        image: mysql:8.4.3
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 30s
+      mariadb:
+        # Moodle 5.3 requires MariaDB 11.4+; older Moodle branches accept it
+        # (minimum-version check only). Published on host port 3307 because the
+        # MySQL service already holds 3306; the install step passes the matching
+        # --db-port.
+        image: mariadb:11.4
+        env:
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: "true"
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 30s
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4']
+        # The plugin declares $plugin->supported = [500, 503], so the stable
+        # branches for Moodle 5.0 through 5.3 are all exercised. 'main'
+        # (next-dev) is deliberately excluded: 'validate' would flag it as
+        # untested-but-unsupported.
+        moodle-branch: ['MOODLE_500_STABLE', 'MOODLE_501_STABLE', 'MOODLE_502_STABLE', 'MOODLE_503_STABLE']
+        database: ['pgsql', 'mysqli', 'mariadb']
+        exclude:
+          # Moodle 5.2+ requires PHP 8.3 or newer.
+          - php: '8.2'
+            moodle-branch: 'MOODLE_502_STABLE'
+          - php: '8.2'
+            moodle-branch: 'MOODLE_503_STABLE'
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+        with:
+          path: plugin
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          ini-values: max_input_vars=5000
+          coverage: none
+
+      - name: Initialise moodle-plugin-ci
+        run: |
+          attempts=0
+          until composer create-project -n --no-dev --prefer-dist moodlehq/moodle-plugin-ci ci ^4; do
+            attempts=$((attempts + 1))
+            if [ $attempts -ge 3 ]; then
+              echo "composer create-project failed after $attempts attempts" >&2
+              exit 1
+            fi
+            echo "composer create-project attempt $attempts failed, retrying..."
+            rm -rf ci
+            sleep $((attempts * 5))
+          done
+          echo $(cd ci/bin; pwd) >> $GITHUB_PATH
+          echo $(cd ci/vendor/bin; pwd) >> $GITHUB_PATH
+          sudo locale-gen en_AU.UTF-8
+          echo "NVM_DIR=$HOME/.nvm" >> $GITHUB_ENV
+
+      - name: Install moodle-plugin-ci
+        id: install
+        run: |
+          # Pick the port matching the service for this matrix DB. MySQL and
+          # MariaDB both speak 3306 in-container, but MariaDB is published on
+          # 3307 on the host to avoid clashing with the MySQL service.
+          case "$DB" in
+            pgsql)   DBPORT=5432 ;;
+            mariadb) DBPORT=3307 ;;
+            *)       DBPORT=3306 ;;
+          esac
+          attempts=0
+          until moodle-plugin-ci install --plugin ./plugin --db-host=127.0.0.1 --db-port="$DBPORT"; do
+            attempts=$((attempts + 1))
+            if [ $attempts -ge 3 ]; then
+              echo "moodle-plugin-ci install failed after $attempts attempts" >&2
+              exit 1
+            fi
+            echo "moodle-plugin-ci install attempt $attempts failed, retrying..."
+            sleep $((attempts * 10))
+          done
+        env:
+          DB: ${{ matrix.database }}
+          MOODLE_BRANCH: ${{ matrix.moodle-branch }}
+
+      - name: PHP Lint
+        if: ${{ !cancelled() && steps.install.conclusion == 'success' }}
+        run: moodle-plugin-ci phplint
+
+      - name: Moodle Code Checker
+        if: ${{ !cancelled() && steps.install.conclusion == 'success' }}
+        run: moodle-plugin-ci phpcs --max-warnings 0
+
+      - name: Moodle PHPDoc Checker
+        if: ${{ !cancelled() && steps.install.conclusion == 'success' }}
+        run: moodle-plugin-ci phpdoc --max-warnings 0
+
+      - name: Validating
+        if: ${{ !cancelled() && steps.install.conclusion == 'success' }}
+        run: moodle-plugin-ci validate
+
+      - name: Check upgrade savepoints
+        if: ${{ !cancelled() && steps.install.conclusion == 'success' }}
+        run: moodle-plugin-ci savepoints
+
+      - name: Mustache Lint
+        if: ${{ !cancelled() && steps.install.conclusion == 'success' }}
+        run: moodle-plugin-ci mustache
+
+      - name: Grunt
+        if: ${{ !cancelled() && steps.install.conclusion == 'success' }}
+        run: moodle-plugin-ci grunt --max-lint-warnings 0
+
+      - name: PHPUnit tests
+        if: ${{ !cancelled() && steps.install.conclusion == 'success' }}
+        run: moodle-plugin-ci phpunit --fail-on-warning
+
+      - name: Behat features
+        if: ${{ !cancelled() && steps.install.conclusion == 'success' }}
+        run: moodle-plugin-ci behat --profile chrome
