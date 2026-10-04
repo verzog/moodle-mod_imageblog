@@ -24,15 +24,22 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['alldiagnoses'] = 'All diagnoses';
+$string['bestanswer'] = 'Best answer';
+$string['bestfactor'] = 'Best-answer factor';
+$string['bestfactor_help'] = 'Fraction of full marks for the diagnosis the teacher marks as best. It overrides the correct and participation factors for that one submission, then is scaled by the case difficulty and capped at the maximum grade.';
+$string['bestupdated'] = 'The best answer has been updated.';
 $string['case'] = 'Clinical case';
 $string['casealreadyrevealed'] = 'The case outcome was revealed before your diagnosis could be saved, so it was not recorded.';
 $string['casedifficulty'] = 'Case difficulty';
 $string['casedifficulty_help'] = 'The difficulty level of this case. A higher level applies a larger multiplier from the difficulty scale, so an answer on a harder case is worth proportionally more, up to the maximum grade.';
 $string['casequestion'] = 'Case question';
 $string['casesettings'] = 'Case';
+$string['clearbest'] = 'Clear';
 $string['correctdiagnosis'] = 'Expected diagnosis';
 $string['correctdiagnosis_help'] = 'The diagnosis treated as correct when scoring. A submission that matches this (ignoring case and surrounding spaces) earns the correct-answer factor; any other submission earns the participation factor. Both are then scaled by the case difficulty.';
 $string['correctfactor'] = 'Correct-answer factor';
+$string['currentbest'] = 'Current best';
 $string['diagnosis'] = 'Your diagnosis';
 $string['diagnosissaved'] = 'Your diagnosis has been saved.';
 $string['difficultyscale'] = 'Difficulty scale';
@@ -43,9 +50,11 @@ $string['imageblog:addinstance'] = 'Add a new image blog activity';
 $string['imageblog:reveal'] = 'Reveal the case outcome';
 $string['imageblog:submit'] = 'Submit a diagnosis';
 $string['imageblog:view'] = 'View an image blog activity';
+$string['markbest'] = 'Mark as best';
 $string['modulename'] = 'Image blog';
 $string['modulename_help'] = 'The image blog activity presents a clinical case. Readers submit a diagnosis, and once the outcome is revealed they receive a grade based on their answer.';
 $string['modulenameplural'] = 'Image blogs';
+$string['nodiagnoses'] = 'No diagnoses have been submitted yet.';
 $string['noinstances'] = 'There are no image blog activities in this course.';
 $string['outcome'] = 'Outcome';
 $string['outcomerevealed'] = 'The case outcome has been revealed and grades have been awarded.';

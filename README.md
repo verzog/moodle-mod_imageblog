@@ -44,15 +44,20 @@ point-based grade item whose maximum is set on the settings form. The score is
 computed through the shared engine and mapped by
 `\mod_imageblog\local\grader::grade_fraction()`:
 
-- A submission matching the expected diagnosis (case- and whitespace-insensitive)
-  earns the **correct-answer factor**; any other non-empty submission earns the
-  **participation factor**.
-- That factor is scaled by the **case difficulty** multiplier (from the
+- A diagnosis the teacher marks as **best** earns the **best-answer factor**,
+  overriding the checks below for that submission.
+- Otherwise, a submission matching the expected diagnosis (case- and
+  whitespace-insensitive) earns the **correct-answer factor**; any other
+  non-empty submission earns the **participation factor**.
+- The factor is scaled by the **case difficulty** multiplier (from the
   per-instance difficulty scale) and capped at full marks.
 - `fraction × maximum grade` is written to the gradebook on reveal.
 
-All four inputs — difficulty level, difficulty scale, and the two factors — are
-per-instance settings on the activity form.
+The difficulty level, difficulty scale, and the three factors
+(participation / correct / best) are per-instance settings on the activity form.
+
+After revealing the outcome, a teacher sees every submitted diagnosis and can
+mark one as the best (or clear the selection); grades update automatically.
 
 ## Roadmap
 
