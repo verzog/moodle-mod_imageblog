@@ -31,7 +31,7 @@ use core_privacy\local\request\writer;
  * exports and deletes that data.
  *
  * @package    mod_imageblog
- * @copyright  2026 Vernon Apain / Educheckout
+ * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class provider implements
