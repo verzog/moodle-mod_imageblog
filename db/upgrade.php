@@ -22,15 +22,13 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Apply the mod_imageblog upgrade steps.
  *
  * @param int $oldversion the version we are upgrading from
  * @return bool true on success
  */
-function xmldb_mod_imageblog_upgrade($oldversion) {
+function xmldb_imageblog_upgrade($oldversion) {
     global $DB;
 
     $dbman = $DB->get_manager();
@@ -38,26 +36,26 @@ function xmldb_mod_imageblog_upgrade($oldversion) {
     if ($oldversion < 2026100401) {
         $table = new xmldb_table('imageblog');
 
-        $field = new xmldb_field('casedifficulty', XMLDB_TYPE_INTEGER, '2', null,
-            XMLDB_NOTNULL, null, '1', 'grade');
+        $field = new xmldb_field('casedifficulty');
+        $field->set_attributes(XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '1', 'grade');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
-        $field = new xmldb_field('difficultyscale', XMLDB_TYPE_CHAR, '255', null,
-            XMLDB_NOTNULL, null, '1, 1.5, 2, 3, 5', 'casedifficulty');
+        $field = new xmldb_field('difficultyscale');
+        $field->set_attributes(XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, '1, 1.5, 2, 3, 5', 'casedifficulty');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
-        $field = new xmldb_field('participationfactor', XMLDB_TYPE_NUMBER, '10, 4', null,
-            XMLDB_NOTNULL, null, '0.5', 'difficultyscale');
+        $field = new xmldb_field('participationfactor');
+        $field->set_attributes(XMLDB_TYPE_NUMBER, '10, 4', null, XMLDB_NOTNULL, null, '0.5', 'difficultyscale');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
-        $field = new xmldb_field('correctfactor', XMLDB_TYPE_NUMBER, '10, 4', null,
-            XMLDB_NOTNULL, null, '1', 'participationfactor');
+        $field = new xmldb_field('correctfactor');
+        $field->set_attributes(XMLDB_TYPE_NUMBER, '10, 4', null, XMLDB_NOTNULL, null, '1', 'participationfactor');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }

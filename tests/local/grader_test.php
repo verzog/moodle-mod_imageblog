@@ -25,7 +25,6 @@ namespace mod_imageblog\local;
  * @covers     \mod_imageblog\local\grader
  */
 final class grader_test extends \basic_testcase {
-
     /** @var string A representative difficulty scale. */
     const SCALE = '1, 1.5, 2, 3, 5';
 
@@ -40,39 +39,34 @@ final class grader_test extends \basic_testcase {
      * A correct answer on a level-1 case earns the full correct factor.
      */
     public function test_correct_easy_scores_correct_factor(): void {
-        $this->assertEqualsWithDelta(1.0,
-            grader::grade_fraction('Pneumonia', 'pneumonia', 1, self::SCALE, 0.5, 1.0), 0.0001);
+        $this->assertEqualsWithDelta(1.0, grader::grade_fraction('Pneumonia', 'pneumonia', 1, self::SCALE, 0.5, 1.0), 0.0001);
     }
 
     /**
      * An incorrect but non-empty answer on a level-1 case earns the participation factor.
      */
     public function test_incorrect_easy_scores_participation_factor(): void {
-        $this->assertEqualsWithDelta(0.5,
-            grader::grade_fraction('Asthma', 'pneumonia', 1, self::SCALE, 0.5, 1.0), 0.0001);
+        $this->assertEqualsWithDelta(0.5, grader::grade_fraction('Asthma', 'pneumonia', 1, self::SCALE, 0.5, 1.0), 0.0001);
     }
 
     /**
-     * The difficulty multiplier scales the fraction up (here 0.5 x 2.0 = 1.0 at level 3).
+     * The difficulty multiplier scales the fraction up (0.5 x 2.0 = 1.0 at level 3).
      */
     public function test_difficulty_multiplier_scales_score(): void {
-        $this->assertEqualsWithDelta(1.0,
-            grader::grade_fraction('Asthma', 'pneumonia', 3, self::SCALE, 0.5, 1.0), 0.0001);
+        $this->assertEqualsWithDelta(1.0, grader::grade_fraction('Asthma', 'pneumonia', 3, self::SCALE, 0.5, 1.0), 0.0001);
     }
 
     /**
      * The fraction is capped at full marks even when difficulty would exceed it.
      */
     public function test_fraction_capped_at_one(): void {
-        $this->assertEqualsWithDelta(1.0,
-            grader::grade_fraction('Pneumonia', 'pneumonia', 5, self::SCALE, 0.5, 1.0), 0.0001);
+        $this->assertEqualsWithDelta(1.0, grader::grade_fraction('Pneumonia', 'pneumonia', 5, self::SCALE, 0.5, 1.0), 0.0001);
     }
 
     /**
      * Matching ignores letter case and surrounding whitespace.
      */
     public function test_match_is_case_and_space_insensitive(): void {
-        $this->assertEqualsWithDelta(1.0,
-            grader::grade_fraction('  PNEUMONIA ', 'pneumonia', 1, self::SCALE, 0.5, 1.0), 0.0001);
+        $this->assertEqualsWithDelta(1.0, grader::grade_fraction('  PNEUMONIA ', 'pneumonia', 1, self::SCALE, 0.5, 1.0), 0.0001);
     }
 }

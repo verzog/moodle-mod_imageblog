@@ -31,7 +31,6 @@ use local_imageblog\local\scoring;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class grader {
-
     /**
      * Compute the grade fraction (0.0-1.0) earned for a diagnosis.
      *
@@ -48,8 +47,14 @@ class grader {
      * @param float $correctfactor fraction for a correct diagnosis
      * @return float the grade fraction, between 0.0 and 1.0 inclusive
      */
-    public static function grade_fraction(string $diagnosis, string $correct, int $difficulty,
-            string $scale, float $participationfactor, float $correctfactor): float {
+    public static function grade_fraction(
+        string $diagnosis,
+        string $correct,
+        int $difficulty,
+        string $scale,
+        float $participationfactor,
+        float $correctfactor
+    ): float {
         if (trim($diagnosis) === '') {
             return 0.0;
         }
