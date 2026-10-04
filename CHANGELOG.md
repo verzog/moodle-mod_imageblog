@@ -13,7 +13,10 @@ the project aims to follow [Semantic Versioning](https://semver.org/).
   correct/participation factors for that submission), scaled by difficulty and
   capped at full marks. Adds the per-instance `bestfactor` setting and a
   `bestdiagnosisid` column (with an upgrade step); `grader::grade_fraction()`
-  gains the best-answer path.
+  gains the best-answer path. Mark/clear actions post (rather than following a
+  link), the regrade reads the persisted instance, the privacy export reports
+  whether a diagnosis was marked best, and erasure clears a best-answer
+  reference that would otherwise dangle.
 
 ## [0.2.0] - 2026-10-04
 

@@ -60,7 +60,8 @@ if ($canreveal && !empty($imageblog->revealed) && $setbest >= 0 && confirm_sessk
         || $DB->record_exists('imageblog_diagnoses', ['id' => $setbest, 'imageblogid' => $imageblog->id]);
     if ($valid) {
         $DB->set_field('imageblog', 'bestdiagnosisid', $setbest, ['id' => $imageblog->id]);
-        $imageblog->bestdiagnosisid = $setbest;
+        // Re-read the instance so the regrade runs against the persisted state.
+        $imageblog = $DB->get_record('imageblog', ['id' => $imageblog->id], '*', MUST_EXIST);
         imageblog_update_grades($imageblog);
         redirect($pageurl, get_string('bestupdated', 'mod_imageblog'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
@@ -150,11 +151,11 @@ if (!empty($imageblog->revealed)) {
                     $params = ['id' => $cm->id, 'setbest' => 0, 'sesskey' => sesskey()];
                     $url = new moodle_url('/mod/imageblog/view.php', $params);
                     $bestcell = html_writer::span(get_string('currentbest', 'mod_imageblog'), 'badge badge-success')
-                        . ' ' . html_writer::link($url, get_string('clearbest', 'mod_imageblog'));
+                        . ' ' . $OUTPUT->single_button($url, get_string('clearbest', 'mod_imageblog'));
                 } else {
                     $params = ['id' => $cm->id, 'setbest' => $diag->id, 'sesskey' => sesskey()];
                     $url = new moodle_url('/mod/imageblog/view.php', $params);
-                    $bestcell = html_writer::link($url, get_string('markbest', 'mod_imageblog'));
+                    $bestcell = $OUTPUT->single_button($url, get_string('markbest', 'mod_imageblog'));
                 }
                 $besttable->data[] = [s($diag->diagnosis), $gradecell, $bestcell];
             }
