@@ -62,8 +62,7 @@ if ($canreveal && !empty($imageblog->revealed) && $setbest >= 0 && confirm_sessk
         $DB->set_field('imageblog', 'bestdiagnosisid', $setbest, ['id' => $imageblog->id]);
         $imageblog->bestdiagnosisid = $setbest;
         imageblog_update_grades($imageblog);
-        redirect($pageurl, get_string('bestupdated', 'mod_imageblog'), null,
-            \core\output\notification::NOTIFY_SUCCESS);
+        redirect($pageurl, get_string('bestupdated', 'mod_imageblog'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
 }
 
