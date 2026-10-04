@@ -25,7 +25,6 @@ namespace mod_imageblog\local;
  * @covers     \mod_imageblog\local\case_engine
  */
 final class case_engine_test extends \basic_testcase {
-
     /**
      * An exact match scores full marks.
      */

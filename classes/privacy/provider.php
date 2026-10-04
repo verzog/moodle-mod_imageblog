@@ -35,10 +35,9 @@ use core_privacy\local\request\writer;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class provider implements
-        \core_privacy\local\metadata\provider,
-        \core_privacy\local\request\core_userlist_provider,
-        \core_privacy\local\request\plugin\provider {
-
+    \core_privacy\local\metadata\provider,
+    \core_privacy\local\request\core_userlist_provider,
+    \core_privacy\local\request\plugin\provider {
     /**
      * Describe the personal data stored by this plugin.
      *
@@ -128,8 +127,7 @@ class provider implements
             if (!$cm) {
                 continue;
             }
-            $record = $DB->get_record('imageblog_diagnoses',
-                ['imageblogid' => $cm->instance, 'userid' => $user->id]);
+            $record = $DB->get_record('imageblog_diagnoses', ['imageblogid' => $cm->instance, 'userid' => $user->id]);
             if (!$record) {
                 continue;
             }
@@ -179,8 +177,7 @@ class provider implements
             if (!$cm) {
                 continue;
             }
-            $DB->delete_records('imageblog_diagnoses',
-                ['imageblogid' => $cm->instance, 'userid' => $user->id]);
+            $DB->delete_records('imageblog_diagnoses', ['imageblogid' => $cm->instance, 'userid' => $user->id]);
         }
     }
 
@@ -204,7 +201,6 @@ class provider implements
 
         [$insql, $inparams] = $DB->get_in_or_equal($userlist->get_userids(), SQL_PARAMS_NAMED);
         $params = array_merge(['imageblogid' => $cm->instance], $inparams);
-        $DB->delete_records_select('imageblog_diagnoses',
-            "imageblogid = :imageblogid AND userid {$insql}", $params);
+        $DB->delete_records_select('imageblog_diagnoses', "imageblogid = :imageblogid AND userid {$insql}", $params);
     }
 }

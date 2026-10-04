@@ -24,7 +24,6 @@ namespace mod_imageblog\form;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class diagnosis_form extends \moodleform {
-
     /**
      * Define the form fields.
      *
@@ -36,8 +35,7 @@ class diagnosis_form extends \moodleform {
         $mform->addElement('hidden', 'id');
         $mform->setType('id', PARAM_INT);
 
-        $mform->addElement('textarea', 'diagnosis', get_string('diagnosis', 'mod_imageblog'),
-            ['rows' => 4, 'cols' => 60]);
+        $mform->addElement('textarea', 'diagnosis', get_string('diagnosis', 'mod_imageblog'), ['rows' => 4, 'cols' => 60]);
         $mform->setType('diagnosis', PARAM_TEXT);
         $mform->addRule('diagnosis', get_string('required'), 'required', null, 'client');
 

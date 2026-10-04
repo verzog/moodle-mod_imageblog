@@ -34,7 +34,6 @@ require_once($CFG->dirroot . '/course/moodleform_mod.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class mod_imageblog_mod_form extends moodleform_mod {
-
     /**
      * Define the form fields.
      *
@@ -54,19 +53,16 @@ class mod_imageblog_mod_form extends moodleform_mod {
 
         $mform->addElement('header', 'casehdr', get_string('casesettings', 'mod_imageblog'));
 
-        $mform->addElement('textarea', 'casequestion', get_string('casequestion', 'mod_imageblog'),
-            ['rows' => 6, 'cols' => 60]);
+        $mform->addElement('textarea', 'casequestion', get_string('casequestion', 'mod_imageblog'), ['rows' => 6, 'cols' => 60]);
         $mform->setType('casequestion', PARAM_TEXT);
         $mform->addRule('casequestion', null, 'required', null, 'client');
 
-        $mform->addElement('text', 'correctdiagnosis', get_string('correctdiagnosis', 'mod_imageblog'),
-            ['size' => 64]);
+        $mform->addElement('text', 'correctdiagnosis', get_string('correctdiagnosis', 'mod_imageblog'), ['size' => 64]);
         $mform->setType('correctdiagnosis', PARAM_TEXT);
         $mform->addRule('correctdiagnosis', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
         $mform->addHelpButton('correctdiagnosis', 'correctdiagnosis', 'mod_imageblog');
 
-        $mform->addElement('textarea', 'revealtext', get_string('revealtext', 'mod_imageblog'),
-            ['rows' => 6, 'cols' => 60]);
+        $mform->addElement('textarea', 'revealtext', get_string('revealtext', 'mod_imageblog'), ['rows' => 6, 'cols' => 60]);
         $mform->setType('revealtext', PARAM_TEXT);
 
         $this->standard_grading_coursemodule_elements();

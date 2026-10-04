@@ -22,8 +22,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Declare which optional features this activity supports.
  *
@@ -154,8 +152,7 @@ function imageblog_grade_item_delete($imageblog) {
     global $CFG;
     require_once($CFG->libdir . '/gradelib.php');
 
-    return grade_update('mod/imageblog', $imageblog->course, 'mod', 'imageblog', $imageblog->id, 0,
-        null, ['deleted' => 1]);
+    return grade_update('mod/imageblog', $imageblog->course, 'mod', 'imageblog', $imageblog->id, 0, null, ['deleted' => 1]);
 }
 
 /**

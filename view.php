@@ -49,16 +49,14 @@ if ($canreveal && empty($imageblog->revealed) && optional_param('reveal', 0, PAR
     $DB->set_field('imageblog', 'revealed', 1, ['id' => $imageblog->id]);
     $imageblog->revealed = 1;
     imageblog_update_grades($imageblog);
-    redirect($pageurl, get_string('outcomerevealed', 'mod_imageblog'), null,
-        \core\output\notification::NOTIFY_SUCCESS);
+    redirect($pageurl, get_string('outcomerevealed', 'mod_imageblog'), null, \core\output\notification::NOTIFY_SUCCESS);
 }
 
 // Reader action: submit or update a diagnosis (only while the case is open).
 $mform = null;
 if ($cansubmit && empty($imageblog->revealed)) {
     $mform = new \mod_imageblog\form\diagnosis_form($pageurl->out(false));
-    $existing = $DB->get_record('imageblog_diagnoses',
-        ['imageblogid' => $imageblog->id, 'userid' => $USER->id]);
+    $existing = $DB->get_record('imageblog_diagnoses', ['imageblogid' => $imageblog->id, 'userid' => $USER->id]);
     $mform->set_data([
         'id' => $cm->id,
         'diagnosis' => $existing ? $existing->diagnosis : '',
@@ -70,8 +68,7 @@ if ($cansubmit && empty($imageblog->revealed)) {
         // the diagnosis permanently locked but absent from the reveal-time
         // grade pass, so refuse the stale write.
         if ($DB->get_field('imageblog', 'revealed', ['id' => $imageblog->id])) {
-            redirect($pageurl, get_string('casealreadyrevealed', 'mod_imageblog'), null,
-                \core\output\notification::NOTIFY_WARNING);
+            redirect($pageurl, get_string('casealreadyrevealed', 'mod_imageblog'), null, \core\output\notification::NOTIFY_WARNING);
         }
         $now = time();
         if ($existing) {
@@ -79,16 +76,16 @@ if ($cansubmit && empty($imageblog->revealed)) {
             $existing->timemodified = $now;
             $DB->update_record('imageblog_diagnoses', $existing);
         } else {
-            $DB->insert_record('imageblog_diagnoses', (object) [
+            $record = (object) [
                 'imageblogid' => $imageblog->id,
                 'userid' => $USER->id,
                 'diagnosis' => $data->diagnosis,
                 'timecreated' => $now,
                 'timemodified' => $now,
-            ]);
+            ];
+            $DB->insert_record('imageblog_diagnoses', $record);
         }
-        redirect($pageurl, get_string('diagnosissaved', 'mod_imageblog'), null,
-            \core\output\notification::NOTIFY_SUCCESS);
+        redirect($pageurl, get_string('diagnosissaved', 'mod_imageblog'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
 }
 
@@ -102,8 +99,7 @@ if (!empty($imageblog->intro)) {
 echo $OUTPUT->heading(get_string('case', 'mod_imageblog'), 3);
 echo $OUTPUT->box(format_text($imageblog->casequestion, FORMAT_MOODLE), 'generalbox');
 
-$mydiagnosis = $DB->get_record('imageblog_diagnoses',
-    ['imageblogid' => $imageblog->id, 'userid' => $USER->id]);
+$mydiagnosis = $DB->get_record('imageblog_diagnoses', ['imageblogid' => $imageblog->id, 'userid' => $USER->id]);
 
 if (!empty($imageblog->revealed)) {
     echo $OUTPUT->heading(get_string('outcome', 'mod_imageblog'), 3);
@@ -124,8 +120,7 @@ if (!empty($imageblog->revealed)) {
         echo html_writer::tag('p', get_string('yourdiagnosis', 'mod_imageblog', s($mydiagnosis->diagnosis)));
     }
     if ($canreveal) {
-        $revealurl = new moodle_url('/mod/imageblog/view.php',
-            ['id' => $cm->id, 'reveal' => 1, 'sesskey' => sesskey()]);
+        $revealurl = new moodle_url('/mod/imageblog/view.php', ['id' => $cm->id, 'reveal' => 1, 'sesskey' => sesskey()]);
         echo $OUTPUT->single_button($revealurl, get_string('revealoutcome', 'mod_imageblog'));
     }
 }

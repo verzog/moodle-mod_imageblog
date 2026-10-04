@@ -30,7 +30,6 @@ namespace mod_imageblog\local;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class case_engine {
-
     /** @var float Fraction of full marks awarded for a submitted but non-matching diagnosis. */
     const PARTICIPATION_FRACTION = 0.5;
 
