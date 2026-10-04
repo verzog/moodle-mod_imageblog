@@ -20,7 +20,7 @@ namespace mod_imageblog\local;
  * Tests for the grade-fraction mapping that consumes the shared scoring engine.
  *
  * @package    mod_imageblog
- * @copyright  2026 Vernon Apain / Educheckout
+ * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \mod_imageblog\local\grader
  */

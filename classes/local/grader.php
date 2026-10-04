@@ -27,7 +27,7 @@ use local_imageblog\local\scoring;
  * multiplier, reusing the shared primitives rather than duplicating them.
  *
  * @package    mod_imageblog
- * @copyright  2026 Vernon Apain / Educheckout
+ * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class grader {
