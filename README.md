@@ -28,23 +28,37 @@ share a context-neutral scoring engine.
    grade.
 2. Students open the activity and submit a diagnosis (one per student, editable
    until the outcome is revealed).
-3. The teacher reveals the outcome. Each student who submitted is graded: an
-   exact match to the expected diagnosis scores full marks, any other
-   submission scores participation credit (50%). Grades flow to the gradebook.
+3. The teacher reveals the outcome. Each student who submitted is graded (see
+   **Grading** below) and the grade flows to the gradebook.
+
+## Requirements note
+
+This activity depends on the **`local_imageblog`** plugin, which provides the
+shared clinical-case scoring engine (`\local_imageblog\local\scoring`). Install
+`local_imageblog` alongside it.
 
 ## Grading
 
 Grading uses the standard Moodle Grade API. Each activity instance owns one
 point-based grade item whose maximum is set on the settings form. The score is
-computed by `\mod_imageblog\local\case_engine::score_fraction()` — a pure,
-context-neutral function — scaled by the maximum.
+computed through the shared engine and mapped by
+`\mod_imageblog\local\grader::grade_fraction()`:
+
+- A submission matching the expected diagnosis (case- and whitespace-insensitive)
+  earns the **correct-answer factor**; any other non-empty submission earns the
+  **participation factor**.
+- That factor is scaled by the **case difficulty** multiplier (from the
+  per-instance difficulty scale) and capped at full marks.
+- `fraction × maximum grade` is written to the gradebook on reveal.
+
+All four inputs — difficulty level, difficulty scale, and the two factors — are
+per-instance settings on the activity form.
 
 ## Roadmap
 
 The design and phased plan live in the local plugin repository at
-`doc/mod_imageblog-grading-plan.md`. Next milestones: the shared engine
-extraction from `local_imageblog`, difficulty multipliers and the best-answer
-bonus, questions/answers, backup/restore, and completion rules.
+`doc/mod_imageblog-grading-plan.md`. Next milestones: a teacher-selected
+best-answer bonus, questions/answers, backup/restore, and completion rules.
 
 ## Licence
 

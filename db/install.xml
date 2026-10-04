@@ -16,6 +16,10 @@
         <FIELD NAME="revealtext" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The outcome explanation shown after the case is revealed."/>
         <FIELD NAME="revealed" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whether the outcome has been revealed (0 or 1)."/>
         <FIELD NAME="grade" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" COMMENT="The maximum grade (points); 0 disables grading."/>
+        <FIELD NAME="casedifficulty" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="The 1-based difficulty level of this case."/>
+        <FIELD NAME="difficultyscale" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="1, 1.5, 2, 3, 5" SEQUENCE="false" COMMENT="Comma-separated difficulty multipliers, one per level."/>
+        <FIELD NAME="participationfactor" TYPE="number" LENGTH="10" DECIMALS="4" NOTNULL="true" DEFAULT="0.5" SEQUENCE="false" COMMENT="Fraction of full marks for a submitted but incorrect diagnosis."/>
+        <FIELD NAME="correctfactor" TYPE="number" LENGTH="10" DECIMALS="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Fraction of full marks for a correct diagnosis."/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time the instance was created."/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time the instance was last modified."/>
       </FIELDS>
