@@ -81,8 +81,12 @@ function imageblog_update_instance($data, $mform = null) {
     $data->id = $data->instance;
     $DB->update_record('imageblog', $data);
 
-    imageblog_grade_item_update($data);
-    imageblog_update_grades($data);
+    // Reload the full record: the form data omits fields that are not form
+    // elements (such as "revealed"), and imageblog_update_grades() needs the
+    // real reveal state to decide whether grades exist.
+    $imageblog = $DB->get_record('imageblog', ['id' => $data->id], '*', MUST_EXIST);
+    imageblog_grade_item_update($imageblog);
+    imageblog_update_grades($imageblog);
 
     return true;
 }
@@ -216,4 +220,40 @@ function imageblog_update_grades($imageblog, $userid = 0, $nullifnone = true) {
     } else {
         imageblog_grade_item_update($imageblog);
     }
+}
+
+/**
+ * Serve files from the activity's intro file area.
+ *
+ * @param stdClass $course the course object
+ * @param stdClass $cm the course module object
+ * @param context $context the module context
+ * @param string $filearea the name of the file area
+ * @param array $args the remaining path arguments (itemid is implicitly 0 for intro)
+ * @param bool $forcedownload whether to force download
+ * @param array $options additional options affecting file serving
+ * @return bool false if the file was not found; otherwise the file is sent and execution stops
+ */
+function imageblog_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
+    if ($context->contextlevel != CONTEXT_MODULE) {
+        return false;
+    }
+
+    require_course_login($course, true, $cm);
+    require_capability('mod/imageblog:view', $context);
+
+    if ($filearea !== 'intro') {
+        return false;
+    }
+
+    $filename = array_pop($args);
+    $filepath = $args ? '/' . implode('/', $args) . '/' : '/';
+
+    $fs = get_file_storage();
+    $file = $fs->get_file($context->id, 'mod_imageblog', 'intro', 0, $filepath, $filename);
+    if (!$file || $file->is_directory()) {
+        return false;
+    }
+
+    send_stored_file($file, null, 0, $forcedownload, $options);
 }

@@ -65,6 +65,14 @@ if ($cansubmit && empty($imageblog->revealed)) {
     ]);
 
     if ($data = $mform->get_data()) {
+        // Re-check the persisted reveal state: a teacher may have revealed (and
+        // graded) the case after this form was rendered. Saving now would leave
+        // the diagnosis permanently locked but absent from the reveal-time
+        // grade pass, so refuse the stale write.
+        if ($DB->get_field('imageblog', 'revealed', ['id' => $imageblog->id])) {
+            redirect($pageurl, get_string('casealreadyrevealed', 'mod_imageblog'), null,
+                \core\output\notification::NOTIFY_WARNING);
+        }
         $now = time();
         if ($existing) {
             $existing->diagnosis = $data->diagnosis;

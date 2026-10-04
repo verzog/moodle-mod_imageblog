@@ -25,12 +25,14 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['case'] = 'Clinical case';
+$string['casealreadyrevealed'] = 'The case outcome was revealed before your diagnosis could be saved, so it was not recorded.';
 $string['casequestion'] = 'Case question';
 $string['casesettings'] = 'Case';
 $string['correctdiagnosis'] = 'Expected diagnosis';
 $string['correctdiagnosis_help'] = 'The diagnosis treated as correct when scoring. A reader whose submission matches this (ignoring case and surrounding spaces) earns full marks; any other submission earns participation credit.';
 $string['diagnosis'] = 'Your diagnosis';
 $string['diagnosissaved'] = 'Your diagnosis has been saved.';
+$string['gradescalesnotsupported'] = 'This activity grades on points only. Choose "Point" and set a maximum grade.';
 $string['imageblog:addinstance'] = 'Add a new image blog activity';
 $string['imageblog:reveal'] = 'Reveal the case outcome';
 $string['imageblog:submit'] = 'Submit a diagnosis';

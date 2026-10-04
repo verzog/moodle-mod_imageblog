@@ -62,6 +62,7 @@ class mod_imageblog_mod_form extends moodleform_mod {
         $mform->addElement('text', 'correctdiagnosis', get_string('correctdiagnosis', 'mod_imageblog'),
             ['size' => 64]);
         $mform->setType('correctdiagnosis', PARAM_TEXT);
+        $mform->addRule('correctdiagnosis', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
         $mform->addHelpButton('correctdiagnosis', 'correctdiagnosis', 'mod_imageblog');
 
         $mform->addElement('textarea', 'revealtext', get_string('revealtext', 'mod_imageblog'),
@@ -72,5 +73,31 @@ class mod_imageblog_mod_form extends moodleform_mod {
         $this->standard_coursemodule_elements();
 
         $this->add_action_buttons();
+    }
+
+    /**
+     * Server-side validation.
+     *
+     * @param array $data submitted form data
+     * @param array $files submitted files
+     * @return array field name => error message for any invalid fields
+     */
+    public function validation($data, $files) {
+        $errors = parent::validation($data, $files);
+
+        // The standard grading element offers scales (stored as a negative
+        // grade value). This activity grades on points only, so reject a scale
+        // selection rather than silently creating an ungraded activity.
+        if (isset($data['grade']) && (int) $data['grade'] < 0) {
+            $errors['grade'] = get_string('gradescalesnotsupported', 'mod_imageblog');
+        }
+
+        // Guard the expected diagnosis against the 255-character column limit
+        // server-side (the client rule can be bypassed).
+        if (isset($data['correctdiagnosis']) && core_text::strlen($data['correctdiagnosis']) > 255) {
+            $errors['correctdiagnosis'] = get_string('maximumchars', '', 255);
+        }
+
+        return $errors;
     }
 }
