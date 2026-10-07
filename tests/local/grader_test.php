@@ -32,41 +32,64 @@ final class grader_test extends \basic_testcase {
      * An empty submission scores zero regardless of settings.
      */
     public function test_empty_submission_scores_zero(): void {
-        $this->assertEquals(0.0, grader::grade_fraction('  ', 'pneumonia', 1, self::SCALE, 0.5, 1.0));
+        $f = grader::grade_fraction('  ', 'pneumonia', false, 1, self::SCALE, 0.5, 1.0, 1.0);
+        $this->assertEquals(0.0, $f);
     }
 
     /**
      * A correct answer on a level-1 case earns the full correct factor.
      */
     public function test_correct_easy_scores_correct_factor(): void {
-        $this->assertEqualsWithDelta(1.0, grader::grade_fraction('Pneumonia', 'pneumonia', 1, self::SCALE, 0.5, 1.0), 0.0001);
+        $f = grader::grade_fraction('Pneumonia', 'pneumonia', false, 1, self::SCALE, 0.5, 1.0, 1.0);
+        $this->assertEqualsWithDelta(1.0, $f, 0.0001);
     }
 
     /**
      * An incorrect but non-empty answer on a level-1 case earns the participation factor.
      */
     public function test_incorrect_easy_scores_participation_factor(): void {
-        $this->assertEqualsWithDelta(0.5, grader::grade_fraction('Asthma', 'pneumonia', 1, self::SCALE, 0.5, 1.0), 0.0001);
+        $f = grader::grade_fraction('Asthma', 'pneumonia', false, 1, self::SCALE, 0.5, 1.0, 1.0);
+        $this->assertEqualsWithDelta(0.5, $f, 0.0001);
     }
 
     /**
      * The difficulty multiplier scales the fraction up (0.5 x 2.0 = 1.0 at level 3).
      */
     public function test_difficulty_multiplier_scales_score(): void {
-        $this->assertEqualsWithDelta(1.0, grader::grade_fraction('Asthma', 'pneumonia', 3, self::SCALE, 0.5, 1.0), 0.0001);
+        $f = grader::grade_fraction('Asthma', 'pneumonia', false, 3, self::SCALE, 0.5, 1.0, 1.0);
+        $this->assertEqualsWithDelta(1.0, $f, 0.0001);
     }
 
     /**
      * The fraction is capped at full marks even when difficulty would exceed it.
      */
     public function test_fraction_capped_at_one(): void {
-        $this->assertEqualsWithDelta(1.0, grader::grade_fraction('Pneumonia', 'pneumonia', 5, self::SCALE, 0.5, 1.0), 0.0001);
+        $f = grader::grade_fraction('Pneumonia', 'pneumonia', false, 5, self::SCALE, 0.5, 1.0, 1.0);
+        $this->assertEqualsWithDelta(1.0, $f, 0.0001);
     }
 
     /**
      * Matching ignores letter case and surrounding whitespace.
      */
     public function test_match_is_case_and_space_insensitive(): void {
-        $this->assertEqualsWithDelta(1.0, grader::grade_fraction('  PNEUMONIA ', 'pneumonia', 1, self::SCALE, 0.5, 1.0), 0.0001);
+        $f = grader::grade_fraction('  PNEUMONIA ', 'pneumonia', false, 1, self::SCALE, 0.5, 1.0, 1.0);
+        $this->assertEqualsWithDelta(1.0, $f, 0.0001);
+    }
+
+    /**
+     * A best-marked diagnosis earns the best factor, overriding the correctness check.
+     */
+    public function test_best_answer_uses_best_factor(): void {
+        // Wrong against the expected string, but marked best with a 0.8 best factor.
+        $f = grader::grade_fraction('Asthma', 'pneumonia', true, 1, self::SCALE, 0.5, 1.0, 0.8);
+        $this->assertEqualsWithDelta(0.8, $f, 0.0001);
+    }
+
+    /**
+     * The best factor is also scaled by difficulty and capped at full marks.
+     */
+    public function test_best_answer_scaled_and_capped(): void {
+        $f = grader::grade_fraction('Asthma', 'pneumonia', true, 3, self::SCALE, 0.5, 1.0, 0.8);
+        $this->assertEqualsWithDelta(1.0, $f, 0.0001);
     }
 }

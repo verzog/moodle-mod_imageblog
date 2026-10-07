@@ -52,6 +52,32 @@ if ($canreveal && empty($imageblog->revealed) && optional_param('reveal', 0, PAR
     redirect($pageurl, get_string('outcomerevealed', 'mod_imageblog'), null, \core\output\notification::NOTIFY_SUCCESS);
 }
 
+// Teacher action: mark (or clear) the best diagnosis. Only meaningful after reveal.
+$setbest = optional_param('setbest', -1, PARAM_INT);
+if ($canreveal && !empty($imageblog->revealed) && $setbest >= 0 && confirm_sesskey()) {
+    // 0 clears the selection; otherwise the diagnosis must belong to this case.
+    $valid = ($setbest === 0)
+        || $DB->record_exists('imageblog_diagnoses', ['id' => $setbest, 'imageblogid' => $imageblog->id]);
+    if ($valid) {
+        // Serialize the write and regrade so two concurrent teacher actions cannot
+        // leave the stored selection and the gradebook awarding different bonuses.
+        $lockfactory = \core\lock\lock_config::get_lock_factory('mod_imageblog_bestanswer');
+        $lock = $lockfactory->get_lock('imageblog_' . $imageblog->id, 10);
+        if (!$lock) {
+            redirect($pageurl, get_string('bestanswerlocked', 'mod_imageblog'), null, \core\output\notification::NOTIFY_WARNING);
+        }
+        try {
+            $DB->set_field('imageblog', 'bestdiagnosisid', $setbest, ['id' => $imageblog->id]);
+            // Re-read inside the lock so the regrade runs against the persisted state.
+            $imageblog = $DB->get_record('imageblog', ['id' => $imageblog->id], '*', MUST_EXIST);
+            imageblog_update_grades($imageblog);
+        } finally {
+            $lock->release();
+        }
+        redirect($pageurl, get_string('bestupdated', 'mod_imageblog'), null, \core\output\notification::NOTIFY_SUCCESS);
+    }
+}
+
 // Reader action: submit or update a diagnosis (only while the case is open).
 $mform = null;
 if ($cansubmit && empty($imageblog->revealed)) {
@@ -110,6 +136,41 @@ if (!empty($imageblog->revealed)) {
         if (isset($grades[$USER->id]) && $grades[$USER->id]->rawgrade !== null) {
             $a = format_float($grades[$USER->id]->rawgrade, 2) . ' / ' . $imageblog->grade;
             echo html_writer::tag('p', get_string('yourgrade', 'mod_imageblog', $a));
+        }
+    }
+
+    if ($canreveal) {
+        echo $OUTPUT->heading(get_string('alldiagnoses', 'mod_imageblog'), 3);
+        $alldiagnoses = $DB->get_records('imageblog_diagnoses', ['imageblogid' => $imageblog->id], 'timecreated ASC');
+        if (!$alldiagnoses) {
+            echo html_writer::tag('p', get_string('nodiagnoses', 'mod_imageblog'));
+        } else {
+            $allgrades = imageblog_get_user_grades($imageblog);
+            $besttable = new html_table();
+            $besttable->head = [
+                get_string('diagnosis', 'mod_imageblog'),
+                get_string('grade'),
+                get_string('bestanswer', 'mod_imageblog'),
+            ];
+            foreach ($alldiagnoses as $diag) {
+                $isbestrow = ((int) $imageblog->bestdiagnosisid === (int) $diag->id);
+                $gradecell = '-';
+                if (isset($allgrades[$diag->userid]) && $allgrades[$diag->userid]->rawgrade !== null) {
+                    $gradecell = format_float($allgrades[$diag->userid]->rawgrade, 2) . ' / ' . $imageblog->grade;
+                }
+                if ($isbestrow) {
+                    $params = ['id' => $cm->id, 'setbest' => 0, 'sesskey' => sesskey()];
+                    $url = new moodle_url('/mod/imageblog/view.php', $params);
+                    $bestcell = html_writer::span(get_string('currentbest', 'mod_imageblog'), 'badge badge-success')
+                        . ' ' . $OUTPUT->single_button($url, get_string('clearbest', 'mod_imageblog'));
+                } else {
+                    $params = ['id' => $cm->id, 'setbest' => $diag->id, 'sesskey' => sesskey()];
+                    $url = new moodle_url('/mod/imageblog/view.php', $params);
+                    $bestcell = $OUTPUT->single_button($url, get_string('markbest', 'mod_imageblog'));
+                }
+                $besttable->data[] = [s($diag->diagnosis), $gradecell, $bestcell];
+            }
+            echo html_writer::table($besttable);
         }
     }
 } else {

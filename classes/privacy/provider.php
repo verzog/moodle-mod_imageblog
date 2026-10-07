@@ -131,8 +131,10 @@ class provider implements
             if (!$record) {
                 continue;
             }
+            $bestid = $DB->get_field('imageblog', 'bestdiagnosisid', ['id' => $cm->instance]);
             $data = (object) [
                 'diagnosis' => $record->diagnosis,
+                'markedbest' => transform::yesno(!empty($bestid) && (int) $bestid === (int) $record->id),
                 'timecreated' => transform::datetime($record->timecreated),
                 'timemodified' => transform::datetime($record->timemodified),
             ];
@@ -157,6 +159,7 @@ class provider implements
             return;
         }
         $DB->delete_records('imageblog_diagnoses', ['imageblogid' => $cm->instance]);
+        self::clear_dangling_best($cm->instance);
     }
 
     /**
@@ -178,6 +181,7 @@ class provider implements
                 continue;
             }
             $DB->delete_records('imageblog_diagnoses', ['imageblogid' => $cm->instance, 'userid' => $user->id]);
+            self::clear_dangling_best($cm->instance);
         }
     }
 
@@ -202,5 +206,21 @@ class provider implements
         [$insql, $inparams] = $DB->get_in_or_equal($userlist->get_userids(), SQL_PARAMS_NAMED);
         $params = array_merge(['imageblogid' => $cm->instance], $inparams);
         $DB->delete_records_select('imageblog_diagnoses', "imageblogid = :imageblogid AND userid {$insql}", $params);
+        self::clear_dangling_best($cm->instance);
+    }
+
+    /**
+     * Reset an instance's best-answer reference when the diagnosis it points at no longer exists.
+     *
+     * @param int $imageblogid the imageblog instance id
+     * @return void
+     */
+    protected static function clear_dangling_best(int $imageblogid): void {
+        global $DB;
+
+        $bestid = $DB->get_field('imageblog', 'bestdiagnosisid', ['id' => $imageblogid]);
+        if (!empty($bestid) && !$DB->record_exists('imageblog_diagnoses', ['id' => $bestid])) {
+            $DB->set_field('imageblog', 'bestdiagnosisid', 0, ['id' => $imageblogid]);
+        }
     }
 }

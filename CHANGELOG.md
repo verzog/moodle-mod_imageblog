@@ -4,6 +4,20 @@ All notable changes to the Image blog activity (`mod_imageblog`) are documented
 here. The format is based on [Keep a Changelog](https://keepachangelog.com/), and
 the project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-10-04
+
+### Added
+- Teacher-selected **best-answer bonus**: once the outcome is revealed, a
+  teacher sees all submitted diagnoses and can mark one as the best. That
+  diagnosis is graded with a configurable best-answer factor (overriding the
+  correct/participation factors for that submission), scaled by difficulty and
+  capped at full marks. Adds the per-instance `bestfactor` setting and a
+  `bestdiagnosisid` column (with an upgrade step); `grader::grade_fraction()`
+  gains the best-answer path. Mark/clear actions post (rather than following a
+  link), the regrade reads the persisted instance, the privacy export reports
+  whether a diagnosis was marked best, and erasure clears a best-answer
+  reference that would otherwise dangle.
+
 ## [0.2.0] - 2026-10-04
 
 ### Changed
@@ -42,5 +56,6 @@ Initial walking skeleton.
   difficulty multipliers and the best-answer bonus — see
   `moodle-local_imageblog/doc/mod_imageblog-grading-plan.md`.
 
+[0.3.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.3.0
 [0.2.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.2.0
 [0.1.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.1.0

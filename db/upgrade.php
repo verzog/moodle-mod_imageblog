@@ -63,5 +63,23 @@ function xmldb_imageblog_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026100401, 'imageblog');
     }
 
+    if ($oldversion < 2026100402) {
+        $table = new xmldb_table('imageblog');
+
+        $field = new xmldb_field('bestfactor');
+        $field->set_attributes(XMLDB_TYPE_NUMBER, '10, 4', null, XMLDB_NOTNULL, null, '1', 'correctfactor');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('bestdiagnosisid');
+        $field->set_attributes(XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'bestfactor');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_mod_savepoint(true, 2026100402, 'imageblog');
+    }
+
     return true;
 }

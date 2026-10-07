@@ -85,6 +85,11 @@ class mod_imageblog_mod_form extends moodleform_mod {
         $mform->setType('participationfactor', PARAM_FLOAT);
         $mform->setDefault('participationfactor', 0.5);
 
+        $mform->addElement('text', 'bestfactor', get_string('bestfactor', 'mod_imageblog'), ['size' => 8]);
+        $mform->setType('bestfactor', PARAM_FLOAT);
+        $mform->setDefault('bestfactor', 1.0);
+        $mform->addHelpButton('bestfactor', 'bestfactor', 'mod_imageblog');
+
         $this->standard_grading_coursemodule_elements();
         $this->standard_coursemodule_elements();
 
@@ -121,7 +126,7 @@ class mod_imageblog_mod_form extends moodleform_mod {
 
         // Scoring factors are fractions of full marks; a negative factor is
         // meaningless (the engine floors it to zero), so reject it outright.
-        foreach (['participationfactor', 'correctfactor'] as $factorfield) {
+        foreach (['participationfactor', 'correctfactor', 'bestfactor'] as $factorfield) {
             if (isset($data[$factorfield]) && (float) $data[$factorfield] < 0) {
                 $errors[$factorfield] = get_string('factornotnegative', 'mod_imageblog');
             }

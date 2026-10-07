@@ -34,34 +34,44 @@ class grader {
     /**
      * Compute the grade fraction (0.0-1.0) earned for a diagnosis.
      *
-     * An empty submission scores zero. Otherwise the factor is the correct
-     * factor when the submission matches the expected diagnosis (case- and
-     * whitespace-insensitive), else the participation factor; it is then scaled
-     * by the difficulty multiplier and capped at full marks.
+     * An empty submission scores zero. A diagnosis the teacher marked best earns
+     * the best-answer factor outright (the teacher's judgement overrides string
+     * matching). Otherwise the factor is the correct factor when the submission
+     * matches the expected diagnosis (case- and whitespace-insensitive), else the
+     * participation factor. The factor is then scaled by the difficulty
+     * multiplier and capped at full marks.
      *
      * @param string $diagnosis the reader's submitted diagnosis
      * @param string $correct the expected diagnosis (may be empty)
+     * @param bool $isbest whether this diagnosis was marked best by the teacher
      * @param int $difficulty the 1-based case difficulty level
      * @param string $scale the comma-separated difficulty scale
      * @param float $participationfactor fraction for a submitted, incorrect diagnosis
      * @param float $correctfactor fraction for a correct diagnosis
+     * @param float $bestfactor fraction for the best diagnosis
      * @return float the grade fraction, between 0.0 and 1.0 inclusive
      */
     public static function grade_fraction(
         string $diagnosis,
         string $correct,
+        bool $isbest,
         int $difficulty,
         string $scale,
         float $participationfactor,
-        float $correctfactor
+        float $correctfactor,
+        float $bestfactor
     ): float {
         if (trim($diagnosis) === '') {
             return 0.0;
         }
 
-        $iscorrect = $correct !== ''
-            && \core_text::strtolower(trim($diagnosis)) === \core_text::strtolower(trim($correct));
-        $factor = $iscorrect ? $correctfactor : $participationfactor;
+        if ($isbest) {
+            $factor = $bestfactor;
+        } else {
+            $iscorrect = $correct !== ''
+                && \core_text::strtolower(trim($diagnosis)) === \core_text::strtolower(trim($correct));
+            $factor = $iscorrect ? $correctfactor : $participationfactor;
+        }
 
         $multiplier = scoring::difficulty_multiplier(scoring::parse_scale($scale), $difficulty);
 
