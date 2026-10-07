@@ -4,6 +4,17 @@ All notable changes to the Image blog activity (`mod_imageblog`) are documented
 here. The format is based on [Keep a Changelog](https://keepachangelog.com/), and
 the project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-10-07
+
+### Added
+- **Backup and restore** (Moodle 2 format). An image blog activity now backs up
+  its case settings, the activity intro files, and — when user data is included
+  — every submitted diagnosis. On restore the teacher-selected best answer is
+  remapped to follow its diagnosis to the new id, so the best-answer bonus
+  survives course copy, import and restore. Adds a test data generator and a
+  backup/restore PHPUnit test covering the remap, and flips
+  `FEATURE_BACKUP_MOODLE2` on.
+
 ## [0.3.0] - 2026-10-04
 
 ### Added
@@ -56,6 +67,7 @@ Initial walking skeleton.
   difficulty multipliers and the best-answer bonus — see
   `moodle-local_imageblog/doc/mod_imageblog-grading-plan.md`.
 
+[0.4.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.4.0
 [0.3.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.3.0
 [0.2.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.2.0
 [0.1.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.1.0

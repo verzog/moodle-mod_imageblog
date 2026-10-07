@@ -1,0 +1,152 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+namespace mod_imageblog;
+
+use backup;
+use backup_controller;
+use restore_controller;
+
+defined('MOODLE_INTERNAL') || die();
+
+global $CFG;
+require_once($CFG->dirroot . '/backup/util/includes/backup_includes.php');
+require_once($CFG->dirroot . '/backup/util/includes/restore_includes.php');
+
+/**
+ * Backup and restore tests for mod_imageblog.
+ *
+ * @package    mod_imageblog
+ * @copyright  2026 Vernon Spain
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @covers     \backup_imageblog_activity_structure_step
+ * @covers     \restore_imageblog_activity_structure_step
+ */
+final class backup_restore_test extends \advanced_testcase {
+    /**
+     * Back up an instance with user data and restore it into a fresh course.
+     *
+     * The best-answer reference must follow the diagnosis to its restored id,
+     * rather than keeping the stale source id (which could collide with an
+     * unrelated diagnosis after restore).
+     */
+    public function test_backup_restore_remaps_best_answer(): void {
+        global $DB, $USER;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $course = $this->getDataGenerator()->create_course();
+        $student = $this->getDataGenerator()->create_and_enrol($course, 'student');
+
+        /** @var \mod_imageblog_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
+        $imageblog = $generator->create_instance(['course' => $course->id, 'revealed' => 1]);
+
+        // Record a diagnosis for the student and mark it as the best answer.
+        $now = time();
+        $diagnosisid = $DB->insert_record('imageblog_diagnoses', (object) [
+            'imageblogid' => $imageblog->id,
+            'userid' => $student->id,
+            'diagnosis' => 'pneumonia',
+            'timecreated' => $now,
+            'timemodified' => $now,
+        ]);
+        $DB->set_field('imageblog', 'bestdiagnosisid', $diagnosisid, ['id' => $imageblog->id]);
+
+        // Back up the activity with user data, then restore it into a new course.
+        $backupid = $this->backup_activity($imageblog->cmid, $USER->id);
+        $targetcourse = $this->getDataGenerator()->create_course();
+        $this->restore_into_course($backupid, $targetcourse->id, $USER->id);
+
+        $restored = $DB->get_record('imageblog', ['course' => $targetcourse->id], '*', MUST_EXIST);
+        $restoreddiagnosis = $DB->get_record(
+            'imageblog_diagnoses',
+            ['imageblogid' => $restored->id],
+            '*',
+            MUST_EXIST
+        );
+
+        // The best-answer reference points at the restored diagnosis, not the original.
+        $this->assertEquals((int) $restoreddiagnosis->id, (int) $restored->bestdiagnosisid);
+        $this->assertNotEquals((int) $diagnosisid, (int) $restored->bestdiagnosisid);
+        $this->assertSame('pneumonia', $restoreddiagnosis->diagnosis);
+        $this->assertEquals((int) $student->id, (int) $restoreddiagnosis->userid);
+    }
+
+    /**
+     * Back up a single activity with user data included.
+     *
+     * MODE_GENERAL zips the backup and removes its working directory, so the
+     * archive is extracted back into the expected location for restore-by-id.
+     *
+     * @param int $cmid the course module id to back up
+     * @param int $userid the user performing the backup
+     * @return string the backup id
+     */
+    protected function backup_activity(int $cmid, int $userid): string {
+        global $CFG;
+        $CFG->backup_file_logger_level = backup::LOG_NONE;
+
+        $bc = new backup_controller(
+            backup::TYPE_1ACTIVITY,
+            $cmid,
+            backup::FORMAT_MOODLE,
+            backup::INTERACTIVE_NO,
+            backup::MODE_GENERAL,
+            $userid
+        );
+        $bc->get_plan()->get_setting('users')->set_value(true);
+
+        $backupid = $bc->get_backupid();
+        $bc->execute_plan();
+        $results = $bc->get_results();
+        $bc->destroy();
+
+        $this->assertArrayHasKey('backup_destination', $results);
+        $file = $results['backup_destination'];
+        $this->assertInstanceOf(\stored_file::class, $file);
+
+        $packer = get_file_packer('application/vnd.moodle.backup');
+        $file->extract_to_pathname($packer, make_backup_temp_directory($backupid));
+
+        return $backupid;
+    }
+
+    /**
+     * Restore a backed-up activity into a course, adding it to that course.
+     *
+     * @param string $backupid the backup id to restore
+     * @param int $courseid the target course id
+     * @param int $userid the user performing the restore
+     * @return void
+     */
+    protected function restore_into_course(string $backupid, int $courseid, int $userid): void {
+        $rc = new restore_controller(
+            $backupid,
+            $courseid,
+            backup::INTERACTIVE_NO,
+            backup::MODE_GENERAL,
+            $userid,
+            backup::TARGET_CURRENT_ADDING
+        );
+        // Precheck can return false on benign warnings; a genuine problem surfaces
+        // as an exception from execute_plan() below, which is what we care about.
+        $rc->execute_precheck();
+        $rc->execute_plan();
+        $rc->destroy();
+    }
+}

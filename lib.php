@@ -37,8 +37,7 @@ function imageblog_supports($feature) {
         case FEATURE_GRADE_HAS_GRADE:
             return true;
         case FEATURE_BACKUP_MOODLE2:
-            // Backup/restore is a later milestone; the skeleton does not ship it yet.
-            return false;
+            return true;
         case FEATURE_MOD_PURPOSE:
             return MOD_PURPOSE_ASSESSMENT;
         default:

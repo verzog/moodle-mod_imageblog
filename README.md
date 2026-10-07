@@ -10,10 +10,11 @@ local plugin is the public, site-wide showcase, while this activity brings the
 clinical-case flow into a course where it can be graded and tracked. The two
 share a context-neutral scoring engine.
 
-> **Status: walking skeleton (v0.1.0).** It installs, adds to a course, shows a
-> case, accepts a diagnosis and writes a grade on reveal. Taxonomy, panoramas,
-> notifications, questions/answers, backup/restore and the full CPD scoring
-> rules are not here yet — see the design plan referenced below.
+> **Status: early alpha (v0.4.0).** It installs, adds to a course, shows a
+> case, accepts a diagnosis, writes a CPD-style grade on reveal (with a
+> teacher-selected best-answer bonus), and backs up and restores cleanly.
+> Taxonomy, panoramas, notifications, questions/answers and activity completion
+> are not here yet — see the design plan referenced below.
 
 ## Requirements
 
@@ -62,8 +63,8 @@ mark one as the best (or clear the selection); grades update automatically.
 ## Roadmap
 
 The design and phased plan live in the local plugin repository at
-`doc/mod_imageblog-grading-plan.md`. Next milestones: a teacher-selected
-best-answer bonus, questions/answers, backup/restore, and completion rules.
+`doc/mod_imageblog-grading-plan.md`. Next milestones: questions/answers,
+activity completion rules, taxonomy and notifications.
 
 ## Licence
 
