@@ -47,19 +47,30 @@ class backup_imageblog_activity_structure_step extends backup_activity_structure
             'userid', 'diagnosis', 'timecreated', 'timemodified',
         ]);
 
+        $questions = new backup_nested_element('questions');
+        $question = new backup_nested_element('question', ['id'], [
+            'userid', 'question', 'answer', 'answeredby', 'timecreated', 'timemodified', 'timeanswered',
+        ]);
+
         // Build the tree.
         $imageblog->add_child($diagnoses);
         $diagnoses->add_child($diagnosis);
+        $imageblog->add_child($questions);
+        $questions->add_child($question);
 
         // Define the data sources.
         $imageblog->set_source_table('imageblog', ['id' => backup::VAR_ACTIVITYID]);
 
         if ($userinfo) {
             $diagnosis->set_source_table('imageblog_diagnoses', ['imageblogid' => backup::VAR_PARENTID]);
+            $question->set_source_table('imageblog_questions', ['imageblogid' => backup::VAR_PARENTID]);
         }
 
-        // Define id annotations: each diagnosis belongs to a user.
+        // Define id annotations: each diagnosis belongs to a user, and a question
+        // belongs to its asker and (once answered) the teacher who answered it.
         $diagnosis->annotate_ids('user', 'userid');
+        $question->annotate_ids('user', 'userid');
+        $question->annotate_ids('user', 'answeredby');
 
         // Define file annotations: the activity intro may embed files.
         $imageblog->annotate_files('mod_imageblog', 'intro', null);

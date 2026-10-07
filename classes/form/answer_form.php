@@ -14,24 +14,34 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace mod_imageblog\form;
+
 /**
- * Plugin version and metadata for mod_imageblog.
+ * Form for a teacher to answer (or edit the answer to) a reader's question.
  *
  * @package    mod_imageblog
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+class answer_form extends \moodleform {
+    /**
+     * Define the form fields.
+     *
+     * @return void
+     */
+    protected function definition() {
+        $mform = $this->_form;
 
-defined('MOODLE_INTERNAL') || die();
+        $mform->addElement('hidden', 'id');
+        $mform->setType('id', PARAM_INT);
 
-$plugin->component = 'mod_imageblog';
-$plugin->version   = 2026100701;
-$plugin->requires  = 2025041100; // Moodle 5.0.
-$plugin->supported = [500, 503];  // Moodle 5.0 to 5.3 inclusive.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.5.0';
-$plugin->dependencies = [
-    // The shared clinical-case scoring engine lives in local_imageblog; this is
-    // the version that introduced \local_imageblog\local\scoring.
-    'local_imageblog' => 2026100401,
-];
+        $mform->addElement('hidden', 'answer');
+        $mform->setType('answer', PARAM_INT);
+
+        $mform->addElement('textarea', 'answertext', get_string('answer', 'mod_imageblog'), ['rows' => 3, 'cols' => 60]);
+        $mform->setType('answertext', PARAM_TEXT);
+        $mform->addRule('answertext', get_string('required'), 'required', null, 'client');
+
+        $this->add_action_buttons(true, get_string('saveanswer', 'mod_imageblog'));
+    }
+}

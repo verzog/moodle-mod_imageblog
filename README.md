@@ -10,11 +10,12 @@ local plugin is the public, site-wide showcase, while this activity brings the
 clinical-case flow into a course where it can be graded and tracked. The two
 share a context-neutral scoring engine.
 
-> **Status: early alpha (v0.4.0).** It installs, adds to a course, shows a
+> **Status: early alpha (v0.5.0).** It installs, adds to a course, shows a
 > case, accepts a diagnosis, writes a CPD-style grade on reveal (with a
-> teacher-selected best-answer bonus), and backs up and restores cleanly.
-> Taxonomy, panoramas, notifications, questions/answers and activity completion
-> are not here yet — see the design plan referenced below.
+> teacher-selected best-answer bonus), supports reader questions with teacher
+> answers, and backs up and restores cleanly. Taxonomy, panoramas,
+> notifications and activity completion are not here yet — see the design plan
+> referenced below.
 
 ## Requirements
 
@@ -60,11 +61,20 @@ The difficulty level, difficulty scale, and the three factors
 After revealing the outcome, a teacher sees every submitted diagnosis and can
 mark one as the best (or clear the selection); grades update automatically.
 
+## Questions & answers
+
+Each case carries a question-and-answer thread. Readers (with the
+*Ask a question* capability) can post questions about the case; teachers (with
+the *Answer a question* capability) can answer them or edit an answer. Answered
+questions are visible to everyone who can view the activity, so the thread
+doubles as a shared teaching resource. Peers see other readers' questions
+anonymously, while the asker and teachers see the asker's name.
+
 ## Roadmap
 
 The design and phased plan live in the local plugin repository at
-`doc/mod_imageblog-grading-plan.md`. Next milestones: questions/answers,
-activity completion rules, taxonomy and notifications.
+`doc/mod_imageblog-grading-plan.md`. Next milestones: activity completion
+rules, taxonomy and notifications.
 
 ## Licence
 

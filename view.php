@@ -43,6 +43,8 @@ $PAGE->set_context($context);
 
 $canreveal = has_capability('mod/imageblog:reveal', $context);
 $cansubmit = has_capability('mod/imageblog:submit', $context);
+$canask = has_capability('mod/imageblog:askquestion', $context);
+$cananswer = has_capability('mod/imageblog:answerquestion', $context);
 
 // Teacher action: reveal the outcome and award grades.
 if ($canreveal && empty($imageblog->revealed) && optional_param('reveal', 0, PARAM_BOOL) && confirm_sesskey()) {
@@ -115,6 +117,57 @@ if ($cansubmit && empty($imageblog->revealed)) {
     }
 }
 
+// Reader action: ask a question about the case.
+$questionform = null;
+if ($canask) {
+    $questionform = new \mod_imageblog\form\question_form($pageurl->out(false));
+    $questionform->set_data(['id' => $cm->id]);
+    if ($data = $questionform->get_data()) {
+        $now = time();
+        $DB->insert_record('imageblog_questions', (object) [
+            'imageblogid' => $imageblog->id,
+            'userid' => $USER->id,
+            'question' => $data->question,
+            'answer' => null,
+            'answeredby' => 0,
+            'timecreated' => $now,
+            'timemodified' => $now,
+            'timeanswered' => 0,
+        ]);
+        redirect($pageurl, get_string('questionasked', 'mod_imageblog'), null, \core\output\notification::NOTIFY_SUCCESS);
+    }
+}
+
+// Teacher action: answer (or edit the answer to) a question.
+$answerform = null;
+$answerquestion = null;
+$answerquestionid = optional_param('answer', 0, PARAM_INT);
+if ($cananswer && $answerquestionid) {
+    $answerquestion = $DB->get_record(
+        'imageblog_questions',
+        ['id' => $answerquestionid, 'imageblogid' => $imageblog->id],
+        '*',
+        MUST_EXIST
+    );
+    $answerform = new \mod_imageblog\form\answer_form($pageurl->out(false));
+    $answerform->set_data([
+        'id' => $cm->id,
+        'answer' => $answerquestion->id,
+        'answertext' => (string) $answerquestion->answer,
+    ]);
+    if ($answerform->is_cancelled()) {
+        redirect($pageurl);
+    } else if ($data = $answerform->get_data()) {
+        $now = time();
+        $answerquestion->answer = $data->answertext;
+        $answerquestion->answeredby = $USER->id;
+        $answerquestion->timeanswered = $now;
+        $answerquestion->timemodified = $now;
+        $DB->update_record('imageblog_questions', $answerquestion);
+        redirect($pageurl, get_string('answersaved', 'mod_imageblog'), null, \core\output\notification::NOTIFY_SUCCESS);
+    }
+}
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(format_string($imageblog->name));
 
@@ -183,6 +236,58 @@ if (!empty($imageblog->revealed)) {
     if ($canreveal) {
         $revealurl = new moodle_url('/mod/imageblog/view.php', ['id' => $cm->id, 'reveal' => 1, 'sesskey' => sesskey()]);
         echo $OUTPUT->single_button($revealurl, get_string('revealoutcome', 'mod_imageblog'));
+    }
+}
+
+// Questions and answers on the case.
+echo $OUTPUT->heading(get_string('questionsheading', 'mod_imageblog'), 3);
+
+if ($answerform) {
+    // A teacher is answering a specific question: show it and the answer form.
+    echo html_writer::tag('p', format_text($answerquestion->question, FORMAT_PLAIN), ['class' => 'font-italic']);
+    $answerform->display();
+} else {
+    $questions = $DB->get_records('imageblog_questions', ['imageblogid' => $imageblog->id], 'timecreated ASC');
+    if (!$questions) {
+        echo html_writer::tag('p', get_string('noquestions', 'mod_imageblog'));
+    } else {
+        foreach ($questions as $question) {
+            // Peers see questions anonymously; the asker and teachers see the name.
+            if ($cananswer || (int) $question->userid === (int) $USER->id) {
+                $asker = \core_user::get_user($question->userid);
+                $askername = $asker ? fullname($asker) : get_string('participant', 'mod_imageblog');
+            } else {
+                $askername = get_string('participant', 'mod_imageblog');
+            }
+
+            echo html_writer::start_tag('div', ['class' => 'card mb-3']);
+            echo html_writer::start_tag('div', ['class' => 'card-body']);
+            echo html_writer::tag('h5', format_text($question->question, FORMAT_PLAIN), ['class' => 'card-title']);
+            echo html_writer::tag('p', get_string('askedby', 'mod_imageblog', $askername), ['class' => 'text-muted']);
+
+            if ($question->answer !== null && trim($question->answer) !== '') {
+                echo html_writer::tag('div', format_text($question->answer, FORMAT_PLAIN), ['class' => 'alert alert-info mb-0']);
+            } else {
+                echo html_writer::tag('p', get_string('notanswered', 'mod_imageblog'), ['class' => 'text-muted font-italic']);
+            }
+
+            if ($cananswer) {
+                $answered = $question->answer !== null && trim($question->answer) !== '';
+                $label = $answered
+                    ? get_string('editanswer', 'mod_imageblog')
+                    : get_string('answerquestion', 'mod_imageblog');
+                $url = new moodle_url('/mod/imageblog/view.php', ['id' => $cm->id, 'answer' => $question->id]);
+                echo $OUTPUT->single_button($url, $label, 'get');
+            }
+
+            echo html_writer::end_tag('div');
+            echo html_writer::end_tag('div');
+        }
+    }
+
+    if ($questionform) {
+        echo $OUTPUT->heading(get_string('askquestion', 'mod_imageblog'), 4);
+        $questionform->display();
     }
 }
 

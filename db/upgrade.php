@@ -81,5 +81,26 @@ function xmldb_imageblog_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026100402, 'imageblog');
     }
 
+    if ($oldversion < 2026100701) {
+        $table = new xmldb_table('imageblog_questions');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('imageblogid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('question', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
+            $table->add_field('answer', XMLDB_TYPE_TEXT, null, null, null, null, null);
+            $table->add_field('answeredby', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('timeanswered', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $table->add_key('fk_imageblog', XMLDB_KEY_FOREIGN, ['imageblogid'], 'imageblog', ['id']);
+            $table->add_index('imageblogid', XMLDB_INDEX_NOTUNIQUE, ['imageblogid']);
+            $dbman->create_table($table);
+        }
+
+        upgrade_mod_savepoint(true, 2026100701, 'imageblog');
+    }
+
     return true;
 }

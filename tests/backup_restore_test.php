@@ -88,6 +88,68 @@ final class backup_restore_test extends \advanced_testcase {
     }
 
     /**
+     * Questions and their answers back up and restore, remapping both the asker
+     * and the answering teacher to the restored users.
+     */
+    public function test_backup_restore_carries_questions(): void {
+        global $DB, $USER;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $course = $this->getDataGenerator()->create_course();
+        $student = $this->getDataGenerator()->create_and_enrol($course, 'student');
+        $teacher = $this->getDataGenerator()->create_and_enrol($course, 'editingteacher');
+
+        /** @var \mod_imageblog_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
+        $imageblog = $generator->create_instance(['course' => $course->id]);
+
+        $now = time();
+        $answeredid = $DB->insert_record('imageblog_questions', (object) [
+            'imageblogid' => $imageblog->id,
+            'userid' => $student->id,
+            'question' => 'Is the lesion calcified?',
+            'answer' => 'Yes, there is dense calcification.',
+            'answeredby' => $teacher->id,
+            'timecreated' => $now,
+            'timemodified' => $now,
+            'timeanswered' => $now,
+        ]);
+        $DB->insert_record('imageblog_questions', (object) [
+            'imageblogid' => $imageblog->id,
+            'userid' => $student->id,
+            'question' => 'What is the patient age?',
+            'answer' => null,
+            'answeredby' => 0,
+            'timecreated' => $now,
+            'timemodified' => $now,
+            'timeanswered' => 0,
+        ]);
+
+        $backupid = $this->backup_activity($imageblog->cmid, $USER->id);
+        $targetcourse = $this->getDataGenerator()->create_course();
+        $this->restore_into_course($backupid, $targetcourse->id, $USER->id);
+
+        $restored = $DB->get_record('imageblog', ['course' => $targetcourse->id], '*', MUST_EXIST);
+        $questions = $DB->get_records('imageblog_questions', ['imageblogid' => $restored->id], 'timecreated ASC');
+        $this->assertCount(2, $questions);
+
+        $answered = array_filter($questions, fn($q) => trim((string) $q->answer) !== '');
+        $this->assertCount(1, $answered);
+        $answered = reset($answered);
+        $this->assertNotEquals((int) $answeredid, (int) $answered->id);
+        $this->assertSame('Yes, there is dense calcification.', $answered->answer);
+        $this->assertEquals((int) $student->id, (int) $answered->userid);
+        $this->assertEquals((int) $teacher->id, (int) $answered->answeredby);
+
+        $unanswered = array_filter($questions, fn($q) => trim((string) $q->answer) === '');
+        $unanswered = reset($unanswered);
+        $this->assertEquals(0, (int) $unanswered->answeredby);
+        $this->assertEquals((int) $student->id, (int) $unanswered->userid);
+    }
+
+    /**
      * Back up a single activity with user data included.
      *
      * MODE_GENERAL zips the backup and removes its working directory, so the
