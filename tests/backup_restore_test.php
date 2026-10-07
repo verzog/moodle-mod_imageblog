@@ -37,7 +37,7 @@ require_once($CFG->dirroot . '/backup/util/includes/restore_includes.php');
  */
 final class backup_restore_test extends \advanced_testcase {
     /**
-     * Back up an instance with user data and restore it into the same course.
+     * Back up an instance with user data and restore it into a fresh course.
      *
      * The best-answer reference must follow the diagnosis to its restored id,
      * rather than keeping the stale source id (which could collide with an
@@ -67,17 +67,12 @@ final class backup_restore_test extends \advanced_testcase {
         ]);
         $DB->set_field('imageblog', 'bestdiagnosisid', $diagnosisid, ['id' => $imageblog->id]);
 
-        // Back up the activity including user data.
+        // Back up the activity with user data, then restore it into a new course.
         $backupid = $this->backup_activity($imageblog->cmid, $USER->id);
+        $targetcourse = $this->getDataGenerator()->create_course();
+        $this->restore_into_course($backupid, $targetcourse->id, $USER->id);
 
-        // Restore it back into the same course as an additional activity.
-        $this->restore_into_course($backupid, $course->id, $USER->id);
-
-        // Two instances now exist; the later one is the restored copy.
-        $instances = $DB->get_records('imageblog', ['course' => $course->id], 'id ASC');
-        $this->assertCount(2, $instances);
-        $restored = end($instances);
-
+        $restored = $DB->get_record('imageblog', ['course' => $targetcourse->id], '*', MUST_EXIST);
         $restoreddiagnosis = $DB->get_record(
             'imageblog_diagnoses',
             ['imageblogid' => $restored->id],
@@ -95,11 +90,17 @@ final class backup_restore_test extends \advanced_testcase {
     /**
      * Back up a single activity with user data included.
      *
+     * MODE_GENERAL zips the backup and removes its working directory, so the
+     * archive is extracted back into the expected location for restore-by-id.
+     *
      * @param int $cmid the course module id to back up
      * @param int $userid the user performing the backup
      * @return string the backup id
      */
     protected function backup_activity(int $cmid, int $userid): string {
+        global $CFG;
+        $CFG->backup_file_logger_level = backup::LOG_NONE;
+
         $bc = new backup_controller(
             backup::TYPE_1ACTIVITY,
             $cmid,
@@ -112,13 +113,21 @@ final class backup_restore_test extends \advanced_testcase {
 
         $backupid = $bc->get_backupid();
         $bc->execute_plan();
+        $results = $bc->get_results();
         $bc->destroy();
+
+        $this->assertArrayHasKey('backup_destination', $results);
+        $file = $results['backup_destination'];
+        $this->assertInstanceOf(\stored_file::class, $file);
+
+        $packer = get_file_packer('application/vnd.moodle.backup');
+        $file->extract_to_pathname($packer, make_backup_temp_directory($backupid));
 
         return $backupid;
     }
 
     /**
-     * Restore a backed-up activity into a course, adding it alongside existing content.
+     * Restore a backed-up activity into a course, adding it to that course.
      *
      * @param string $backupid the backup id to restore
      * @param int $courseid the target course id

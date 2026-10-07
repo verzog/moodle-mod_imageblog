@@ -58,9 +58,9 @@ class restore_imageblog_activity_structure_step extends restore_activity_structu
         $data = (object) $data;
         $data->course = $this->get_courseid();
 
-        // bestdiagnosisid references a diagnosis restored later as a child element.
-        // Stash the old id and zero it for now; after_execute() remaps it once the
-        // diagnoses exist and their new ids are known.
+        // The bestdiagnosisid field references a diagnosis restored later as a
+        // child element. Stash the old id and zero it for now; after_execute()
+        // remaps it once the diagnoses exist and their new ids are known.
         $this->bestdiagnosisid = empty($data->bestdiagnosisid) ? 0 : (int) $data->bestdiagnosisid;
         $data->bestdiagnosisid = 0;
 
