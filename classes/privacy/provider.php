@@ -59,6 +59,8 @@ class provider implements
             'answer' => 'privacy:metadata:imageblog_questions:answer',
             'answeredby' => 'privacy:metadata:imageblog_questions:answeredby',
             'timecreated' => 'privacy:metadata:imageblog_questions:timecreated',
+            'timemodified' => 'privacy:metadata:imageblog_questions:timemodified',
+            'timeanswered' => 'privacy:metadata:imageblog_questions:timeanswered',
         ], 'privacy:metadata:imageblog_questions');
 
         return $collection;
@@ -214,6 +216,7 @@ class provider implements
                 'answer' => $question->answer,
                 'answered' => transform::yesno(!empty($question->answeredby)),
                 'timecreated' => transform::datetime($question->timecreated),
+                'timemodified' => transform::datetime($question->timemodified),
             ]);
         }
 

@@ -41,4 +41,19 @@ class question_form extends \moodleform {
 
         $this->add_action_buttons(false, get_string('askquestion', 'mod_imageblog'));
     }
+
+    /**
+     * Reject a question that is empty once surrounding whitespace is removed.
+     *
+     * @param array $data the submitted values
+     * @param array $files the submitted files
+     * @return array field name => error string
+     */
+    public function validation($data, $files) {
+        $errors = parent::validation($data, $files);
+        if (trim($data['question'] ?? '') === '') {
+            $errors['question'] = get_string('required');
+        }
+        return $errors;
+    }
 }

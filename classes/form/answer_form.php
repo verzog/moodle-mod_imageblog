@@ -44,4 +44,19 @@ class answer_form extends \moodleform {
 
         $this->add_action_buttons(true, get_string('saveanswer', 'mod_imageblog'));
     }
+
+    /**
+     * Reject an answer that is empty once surrounding whitespace is removed.
+     *
+     * @param array $data the submitted values
+     * @param array $files the submitted files
+     * @return array field name => error string
+     */
+    public function validation($data, $files) {
+        $errors = parent::validation($data, $files);
+        if (trim($data['answertext'] ?? '') === '') {
+            $errors['answertext'] = get_string('required');
+        }
+        return $errors;
+    }
 }
