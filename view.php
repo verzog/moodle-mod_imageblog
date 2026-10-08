@@ -187,6 +187,11 @@ if (!empty($imageblog->intro)) {
 echo $OUTPUT->heading(get_string('case', 'mod_imageblog'), 3);
 echo $OUTPUT->box(format_text($imageblog->casequestion, FORMAT_MOODLE), 'generalbox');
 
+$casetags = core_tag_tag::get_item_tags('mod_imageblog', 'imageblog', $imageblog->id);
+if ($casetags) {
+    echo $OUTPUT->tag_list($casetags, get_string('casetags', 'mod_imageblog'), 'imageblog-tags');
+}
+
 $mydiagnosis = $DB->get_record('imageblog_diagnoses', ['imageblogid' => $imageblog->id, 'userid' => $USER->id]);
 
 if (!empty($imageblog->revealed)) {

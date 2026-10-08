@@ -4,6 +4,16 @@ All notable changes to the Image blog activity (`mod_imageblog`) are documented
 here. The format is based on [Keep a Changelog](https://keepachangelog.com/), and
 the project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [0.7.0] - 2026-10-08
+
+### Added
+- **Case taxonomy (tags).** Cases can be tagged with a dedicated *Case tags*
+  field backed by a `mod_imageblog`/`imageblog` core tag area, kept separate
+  from the generic activity tags. Tags show on the case view and link to
+  Moodle's tag pages, so readers can follow a tag to other cases that share it.
+  Adds `db/tag.php`, the form field, display, backup/restore of the tags, and a
+  backup/restore test. No schema change (tags use the core tag tables).
+
 ## [0.6.0] - 2026-10-08
 
 ### Added
@@ -89,6 +99,7 @@ Initial walking skeleton.
   difficulty multipliers and the best-answer bonus — see
   `moodle-local_imageblog/doc/mod_imageblog-grading-plan.md`.
 
+[0.7.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.7.0
 [0.6.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.6.0
 [0.5.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.5.0
 [0.4.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.4.0

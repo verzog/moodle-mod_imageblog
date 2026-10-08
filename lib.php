@@ -66,6 +66,11 @@ function imageblog_add_instance($data, $mform = null) {
 
     imageblog_grade_item_update($data);
 
+    if (isset($data->casetags)) {
+        $context = context_module::instance($data->coursemodule);
+        core_tag_tag::set_item_tags('mod_imageblog', 'imageblog', $data->id, $context, $data->casetags);
+    }
+
     return $data->id;
 }
 
@@ -98,6 +103,11 @@ function imageblog_update_instance($data, $mform = null) {
     imageblog_grade_item_update($imageblog);
     imageblog_update_grades($imageblog);
 
+    if (isset($data->casetags)) {
+        $context = context_module::instance($data->coursemodule);
+        core_tag_tag::set_item_tags('mod_imageblog', 'imageblog', $data->id, $context, $data->casetags);
+    }
+
     return true;
 }
 
@@ -114,6 +124,8 @@ function imageblog_delete_instance($id) {
     if (!$imageblog) {
         return false;
     }
+
+    core_tag_tag::remove_all_item_tags('mod_imageblog', 'imageblog', $imageblog->id);
 
     $DB->delete_records('imageblog_questions', ['imageblogid' => $imageblog->id]);
     $DB->delete_records('imageblog_diagnoses', ['imageblogid' => $imageblog->id]);
@@ -304,4 +316,116 @@ function imageblog_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
     }
 
     send_stored_file($file, null, 0, $forcedownload, $options);
+}
+
+/**
+ * Build the tag index for image blog cases carrying a given tag.
+ *
+ * @param core_tag_tag $tag the tag being viewed
+ * @param bool $exclusivemode whether only this component/itemtype is shown
+ * @param int $fromcontextid the context the tag page was reached from, or 0
+ * @param int $contextid the context to restrict the results to, or 0 for the whole site
+ * @param bool $recursivecontext whether to include child contexts of $contextid
+ * @param int $page the zero-based page number
+ * @return \core_tag\output\tagindex the rendered tag index
+ */
+function mod_imageblog_get_tagged_cases(
+    $tag,
+    $exclusivemode = false,
+    $fromcontextid = 0,
+    $contextid = 0,
+    $recursivecontext = true,
+    $page = 0
+) {
+    global $OUTPUT;
+
+    $perpage = $exclusivemode ? 20 : 5;
+
+    $ctxselect = context_helper::get_preload_record_columns_sql('ctx');
+
+    $query = "SELECT i.id, i.name, cm.id AS cmid, c.id AS courseid, c.shortname, c.fullname, $ctxselect
+                FROM {imageblog} i
+                JOIN {modules} m ON m.name = 'imageblog'
+                JOIN {course_modules} cm ON cm.module = m.id AND cm.instance = i.id
+                JOIN {tag_instance} tt ON tt.itemid = i.id
+                JOIN {context} ctx ON ctx.instanceid = cm.id AND ctx.contextlevel = :coursemodulecontextlevel
+                JOIN {course} c ON c.id = cm.course
+               WHERE tt.itemtype = :itemtype
+                 AND tt.tagid = :tagid
+                 AND tt.component = :component
+                 AND cm.deletioninprogress = 0
+                 AND i.id %ITEMFILTER%
+                 AND c.id %COURSEFILTER%";
+
+    $params = [
+        'itemtype' => 'imageblog',
+        'tagid' => $tag->id,
+        'component' => 'mod_imageblog',
+        'coursemodulecontextlevel' => CONTEXT_MODULE,
+    ];
+
+    if ($contextid) {
+        $context = context::instance_by_id($contextid);
+        $query .= $recursivecontext ? ' AND (ctx.id = :contextid OR ctx.path LIKE :path)' : ' AND ctx.id = :contextid';
+        $params['contextid'] = $context->id;
+        if ($recursivecontext) {
+            $params['path'] = $context->path . '/%';
+        }
+    }
+
+    $query .= ' ORDER BY ';
+    if ($fromcontextid) {
+        $query .= '(CASE WHEN ctx.id = :preferredcontextid THEN 0 ELSE 1 END), ';
+        $params['preferredcontextid'] = $fromcontextid;
+    }
+    $query .= 'c.sortorder, cm.id';
+
+    $builder = new core_tag_index_builder('mod_imageblog', 'imageblog', $query, $params, $page * $perpage, $perpage + 1);
+
+    while ($item = $builder->has_item_that_needs_access_check()) {
+        context_helper::preload_from_record($item);
+        if (!$builder->can_access_course($item->courseid)) {
+            $builder->set_accessible($item, false);
+            continue;
+        }
+        $modinfo = get_fast_modinfo($item->courseid);
+        $cm = $modinfo->get_cm($item->cmid);
+        $builder->set_accessible($item, $cm->uservisible);
+    }
+
+    $items = $builder->get_items();
+    if (count($items) > $perpage) {
+        $totalpages = $page + 2;
+        array_pop($items);
+    } else {
+        $totalpages = $page + ($items ? 1 : 0);
+    }
+
+    $tagfeed = new core_tag\output\tagfeed();
+    foreach ($items as $item) {
+        context_helper::preload_from_record($item);
+        $modinfo = get_fast_modinfo($item->courseid);
+        $cm = $modinfo->get_cm($item->cmid);
+        $pageurl = new moodle_url('/mod/imageblog/view.php', ['id' => $item->cmid]);
+        $pagename = html_writer::link($pageurl, format_string($item->name, true, ['context' => $cm->context]));
+        $courseurl = course_get_url($item->courseid, $cm->sectionnum);
+        $coursename = html_writer::link($courseurl, format_string($item->fullname, true, ['context' => $cm->context]));
+        $icon = html_writer::link($pageurl, $OUTPUT->pix_icon('monologo', '', 'mod_imageblog'));
+        $tagfeed->add($icon, $pagename, $coursename);
+    }
+
+    $content = $OUTPUT->render_from_template('core_tag/tagfeed', $tagfeed->export_for_template($OUTPUT));
+
+    return new core_tag\output\tagindex(
+        $tag,
+        'mod_imageblog',
+        'imageblog',
+        $content,
+        $exclusivemode,
+        $fromcontextid,
+        $contextid,
+        $recursivecontext,
+        $page,
+        $totalpages
+    );
 }

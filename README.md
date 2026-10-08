@@ -10,12 +10,12 @@ local plugin is the public, site-wide showcase, while this activity brings the
 clinical-case flow into a course where it can be graded and tracked. The two
 share a context-neutral scoring engine.
 
-> **Status: early alpha (v0.6.0).** It installs, adds to a course, shows a
+> **Status: early alpha (v0.7.0).** It installs, adds to a course, shows a
 > case, accepts a diagnosis, writes a CPD-style grade on reveal (with a
 > teacher-selected best-answer bonus), supports reader questions with teacher
-> answers, tracks activity completion, and backs up and restores cleanly.
-> Taxonomy, panoramas and notifications are not here yet — see the design plan
-> referenced below.
+> answers, tags cases for browsing, tracks activity completion, and backs up
+> and restores cleanly. 360° panoramas and notifications are not here yet —
+> see the design plan referenced below.
 
 ## Requirements
 
@@ -77,10 +77,18 @@ The activity supports Moodle completion tracking. Alongside the standard
 — which marks the activity complete for a student once they submit a diagnosis.
 Enable it on the activity's *Activity completion* settings.
 
+## Case tags
+
+Each case can be tagged with a dedicated **Case tags** field (separate from the
+generic activity tags), classifying it by body system, imaging modality,
+specialty or any scheme the teacher chooses. Tags appear on the case and link
+to Moodle's tag pages, so a reader can follow a tag to other cases that share
+it.
+
 ## Roadmap
 
 The design and phased plan live in the local plugin repository at
-`doc/mod_imageblog-grading-plan.md`. Next milestones: taxonomy and
+`doc/mod_imageblog-grading-plan.md`. Next milestones: 360° panoramas and
 notifications.
 
 ## Licence

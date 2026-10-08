@@ -90,6 +90,14 @@ class mod_imageblog_mod_form extends moodleform_mod {
         $mform->setDefault('bestfactor', 1.0);
         $mform->addHelpButton('bestfactor', 'bestfactor', 'mod_imageblog');
 
+        $mform->addElement(
+            'tags',
+            'casetags',
+            get_string('casetags', 'mod_imageblog'),
+            ['itemtype' => 'imageblog', 'component' => 'mod_imageblog']
+        );
+        $mform->addHelpButton('casetags', 'casetags', 'mod_imageblog');
+
         $this->standard_grading_coursemodule_elements();
         $this->standard_coursemodule_elements();
 
@@ -126,6 +134,24 @@ class mod_imageblog_mod_form extends moodleform_mod {
     public function completion_rule_enabled($data) {
         $suffix = $this->get_suffix();
         return !empty($data['completionsubmit' . $suffix]);
+    }
+
+    /**
+     * Load the instance's existing case tags into the form when editing.
+     *
+     * @param array $defaultvalues the default form values, passed by reference
+     * @return void
+     */
+    public function data_preprocessing(&$defaultvalues) {
+        parent::data_preprocessing($defaultvalues);
+
+        if (!empty($this->current->id)) {
+            $defaultvalues['casetags'] = \core_tag_tag::get_item_tags_array(
+                'mod_imageblog',
+                'imageblog',
+                $this->current->id
+            );
+        }
     }
 
     /**
