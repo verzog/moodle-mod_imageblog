@@ -43,6 +43,7 @@ class restore_imageblog_activity_structure_step extends restore_activity_structu
             $paths[] = new restore_path_element('imageblog_diagnosis', '/activity/imageblog/diagnoses/diagnosis');
             $paths[] = new restore_path_element('imageblog_question', '/activity/imageblog/questions/question');
         }
+        $paths[] = new restore_path_element('imageblog_tag', '/activity/imageblog/casetags/tag');
 
         return $this->prepare_activity_structure($paths);
     }
@@ -104,6 +105,23 @@ class restore_imageblog_activity_structure_step extends restore_activity_structu
         $data->answeredby = empty($data->answeredby) ? 0 : (int) $this->get_mappingid('user', $data->answeredby);
 
         $DB->insert_record('imageblog_questions', $data);
+    }
+
+    /**
+     * Restore one case tag by re-tagging the restored instance.
+     *
+     * @param array $data the parsed tag data
+     * @return void
+     */
+    protected function process_imageblog_tag($data) {
+        $data = (object) $data;
+
+        if (!core_tag_tag::is_enabled('mod_imageblog', 'imageblog')) {
+            return;
+        }
+
+        $context = context_module::instance($this->task->get_moduleid());
+        core_tag_tag::add_item_tag('mod_imageblog', 'imageblog', $this->task->get_activityid(), $context, $data->rawname);
     }
 
     /**

@@ -52,11 +52,16 @@ class backup_imageblog_activity_structure_step extends backup_activity_structure
             'userid', 'question', 'answer', 'answeredby', 'timecreated', 'timemodified', 'timeanswered',
         ]);
 
+        $tags = new backup_nested_element('casetags');
+        $tag = new backup_nested_element('tag', ['id'], ['itemid', 'rawname']);
+
         // Build the tree.
         $imageblog->add_child($diagnoses);
         $diagnoses->add_child($diagnosis);
         $imageblog->add_child($questions);
         $questions->add_child($question);
+        $imageblog->add_child($tags);
+        $tags->add_child($tag);
 
         // Define the data sources.
         $imageblog->set_source_table('imageblog', ['id' => backup::VAR_ACTIVITYID]);
@@ -64,6 +69,20 @@ class backup_imageblog_activity_structure_step extends backup_activity_structure
         if ($userinfo) {
             $diagnosis->set_source_table('imageblog_diagnoses', ['imageblogid' => backup::VAR_PARENTID]);
             $question->set_source_table('imageblog_questions', ['imageblogid' => backup::VAR_PARENTID]);
+        }
+
+        // Case tags are instance content, so back them up regardless of user info.
+        if (core_tag_tag::is_enabled('mod_imageblog', 'imageblog')) {
+            $tag->set_source_sql('SELECT t.id, ti.itemid, t.rawname
+                                    FROM {tag} t
+                                    JOIN {tag_instance} ti ON ti.tagid = t.id
+                                   WHERE ti.itemtype = ?
+                                     AND ti.component = ?
+                                     AND ti.contextid = ?', [
+                backup_helper::is_sqlparam('imageblog'),
+                backup_helper::is_sqlparam('mod_imageblog'),
+                backup::VAR_CONTEXTID,
+            ]);
         }
 
         // Define id annotations: each diagnosis belongs to a user, and a question

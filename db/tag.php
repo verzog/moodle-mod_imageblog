@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and metadata for mod_imageblog.
+ * Tag areas for mod_imageblog.
  *
  * @package    mod_imageblog
  * @copyright  2026 Vernon Spain
@@ -24,14 +24,9 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'mod_imageblog';
-$plugin->version   = 2026100801;
-$plugin->requires  = 2025041100; // Moodle 5.0.
-$plugin->supported = [500, 503];  // Moodle 5.0 to 5.3 inclusive.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.7.0';
-$plugin->dependencies = [
-    // The shared clinical-case scoring engine lives in local_imageblog; this is
-    // the version that introduced \local_imageblog\local\scoring.
-    'local_imageblog' => 2026100401,
+$tagareas = [
+    [
+        'itemtype' => 'imageblog',
+        'component' => 'mod_imageblog',
+    ],
 ];

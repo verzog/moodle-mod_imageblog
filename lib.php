@@ -66,6 +66,11 @@ function imageblog_add_instance($data, $mform = null) {
 
     imageblog_grade_item_update($data);
 
+    if (isset($data->casetags)) {
+        $context = context_module::instance($data->coursemodule);
+        core_tag_tag::set_item_tags('mod_imageblog', 'imageblog', $data->id, $context, $data->casetags);
+    }
+
     return $data->id;
 }
 
@@ -98,6 +103,11 @@ function imageblog_update_instance($data, $mform = null) {
     imageblog_grade_item_update($imageblog);
     imageblog_update_grades($imageblog);
 
+    if (isset($data->casetags)) {
+        $context = context_module::instance($data->coursemodule);
+        core_tag_tag::set_item_tags('mod_imageblog', 'imageblog', $data->id, $context, $data->casetags);
+    }
+
     return true;
 }
 
@@ -114,6 +124,8 @@ function imageblog_delete_instance($id) {
     if (!$imageblog) {
         return false;
     }
+
+    core_tag_tag::remove_all_item_tags('mod_imageblog', 'imageblog', $imageblog->id);
 
     $DB->delete_records('imageblog_questions', ['imageblogid' => $imageblog->id]);
     $DB->delete_records('imageblog_diagnoses', ['imageblogid' => $imageblog->id]);
