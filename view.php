@@ -324,20 +324,46 @@ require([], function() {
             document.head.appendChild(s);
         });
     };
-    var chain = Promise.resolve();
-    [cfg.three].concat(cfg.scripts).forEach(function(src) {
-        chain = chain.then(function() {
-            return loadScript(src);
+    // Moodle loads RequireJS, so define.amd is truthy and the UMD three.min.js
+    // would register as an anonymous AMD module instead of assigning window.THREE.
+    // Hide define while that build evaluates so it takes its browser-global path;
+    // the legacy controls/loaders read the global and do not touch define.
+    var realDefine = window.define;
+    var hideAmd = function() {
+        try {
+            window.define = undefined;
+        } catch (e) {
+            realDefine = window.define;
+        }
+    };
+    var restoreAmd = function() {
+        try {
+            window.define = realDefine;
+        } catch (e) {
+            return;
+        }
+    };
+    hideAmd();
+    loadScript(cfg.three).then(function() {
+        restoreAmd();
+        var rest = Promise.resolve();
+        cfg.scripts.forEach(function(src) {
+            rest = rest.then(function() {
+                return loadScript(src);
+            });
         });
-    });
-    chain.then(function() {
+        return rest;
+    }).then(function() {
         if (!window.THREE) {
             fail();
             return;
         }
         region.dataset.initialised = '1';
         render(window.THREE);
-    }).catch(fail);
+    }).catch(function() {
+        restoreAmd();
+        fail();
+    });
 
     function render(THREE) {
         var width = region.clientWidth || 640;
@@ -355,6 +381,33 @@ require([], function() {
         scene.add(key);
         var controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
+        var framereq = null;
+        // The render loop starts only once a model is in the scene, so a failed
+        // or empty load never spins an empty canvas.
+        var begin = function() {
+            if (framereq !== null) {
+                return;
+            }
+            var loop = function() {
+                framereq = requestAnimationFrame(loop);
+                controls.update();
+                renderer.render(scene, camera);
+            };
+            loop();
+        };
+        // Stop rendering and remove the canvas on an asynchronous load failure,
+        // so the CSS fallback message has the region to itself.
+        var teardown = function() {
+            if (framereq !== null) {
+                cancelAnimationFrame(framereq);
+                framereq = null;
+            }
+            if (renderer.domElement && renderer.domElement.parentNode) {
+                renderer.domElement.parentNode.removeChild(renderer.domElement);
+            }
+            renderer.dispose();
+            fail();
+        };
         var frame = function(object3d) {
             var box = new THREE.Box3().setFromObject(object3d);
             var size = box.getSize(new THREE.Vector3());
@@ -384,6 +437,7 @@ require([], function() {
             var mesh = new THREE.Mesh(geometry, material);
             frame(mesh);
             scene.add(mesh);
+            begin();
         };
         var addPoints = function(geometry) {
             var box = new THREE.Box3().setFromBufferAttribute(geometry.getAttribute('position'));
@@ -399,18 +453,20 @@ require([], function() {
             var points = new THREE.Points(geometry, material);
             frame(points);
             scene.add(points);
+            begin();
         };
         var addObject = function(object3d) {
             frame(object3d);
             scene.add(object3d);
+            begin();
         };
         try {
             if (cfg.format === 'gltf') {
                 new THREE.GLTFLoader().load(cfg.model, function(gltf) {
                     addObject(gltf.scene);
-                }, undefined, fail);
+                }, undefined, teardown);
             } else if (cfg.format === 'stl') {
-                new THREE.STLLoader().load(cfg.model, addMesh, undefined, fail);
+                new THREE.STLLoader().load(cfg.model, addMesh, undefined, teardown);
             } else if (cfg.format === 'ply') {
                 // A PLY with faces is a mesh; one without (e.g. an Open3D scan) is a point cloud.
                 new THREE.PLYLoader().load(cfg.model, function(geometry) {
@@ -419,23 +475,17 @@ require([], function() {
                     } else {
                         addPoints(geometry);
                     }
-                }, undefined, fail);
+                }, undefined, teardown);
             } else if (cfg.format === 'obj') {
-                new THREE.OBJLoader().load(cfg.model, addObject, undefined, fail);
+                new THREE.OBJLoader().load(cfg.model, addObject, undefined, teardown);
             } else {
-                fail();
+                teardown();
                 return;
             }
         } catch (e) {
-            fail();
+            teardown();
             return;
         }
-        var animate = function() {
-            requestAnimationFrame(animate);
-            controls.update();
-            renderer.render(scene, camera);
-        };
-        animate();
         window.addEventListener('resize', function() {
             var w = region.clientWidth || width;
             var h = Math.round(w * 9 / 16);

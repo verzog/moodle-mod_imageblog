@@ -114,7 +114,7 @@ file in one of these formats (up to 50 MB):
 
 | Format | Extensions | Notes |
 | --- | --- | --- |
-| glTF / GLB | `.gltf`, `.glb` | Materials and textures render; a self-contained `.glb` is ideal. |
+| glTF / GLB | `.gltf`, `.glb` | Must be self-contained: a binary `.glb`, or a `.gltf` with embedded buffers. A `.gltf` that references external `.bin`/texture files will not load, since companion files are not uploaded. Materials and textures render. |
 | STL | `.stl` | Geometry only (ASCII or binary); a neutral material is applied. |
 | PLY | `.ply` | Geometry only; a neutral material is applied. |
 | OBJ | `.obj` | Geometry only — the companion `.mtl`/textures are not loaded in this version. |
