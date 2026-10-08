@@ -97,6 +97,35 @@ class mod_imageblog_mod_form extends moodleform_mod {
     }
 
     /**
+     * Add the activity's custom completion rules to the form.
+     *
+     * @return array the names of the added rule elements
+     */
+    public function add_completion_rules() {
+        $mform = $this->_form;
+
+        $mform->addElement(
+            'checkbox',
+            'completionsubmit',
+            '',
+            get_string('completionsubmit', 'mod_imageblog')
+        );
+        $mform->addHelpButton('completionsubmit', 'completionsubmit', 'mod_imageblog');
+
+        return ['completionsubmit'];
+    }
+
+    /**
+     * Whether any of this activity's custom completion rules are enabled.
+     *
+     * @param array $data the submitted form data
+     * @return bool true if a custom rule is selected
+     */
+    public function completion_rule_enabled($data) {
+        return !empty($data['completionsubmit']);
+    }
+
+    /**
      * Server-side validation.
      *
      * @param array $data submitted form data

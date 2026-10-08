@@ -39,7 +39,7 @@ class backup_imageblog_activity_structure_step extends backup_activity_structure
             'name', 'intro', 'introformat', 'casequestion', 'correctdiagnosis',
             'revealtext', 'revealed', 'grade', 'casedifficulty', 'difficultyscale',
             'participationfactor', 'correctfactor', 'bestfactor', 'bestdiagnosisid',
-            'timecreated', 'timemodified',
+            'completionsubmit', 'timecreated', 'timemodified',
         ]);
 
         $diagnoses = new backup_nested_element('diagnoses');

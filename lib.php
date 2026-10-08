@@ -36,6 +36,10 @@ function imageblog_supports($feature) {
             return true;
         case FEATURE_GRADE_HAS_GRADE:
             return true;
+        case FEATURE_COMPLETION_TRACKS_VIEWS:
+            return true;
+        case FEATURE_COMPLETION_HAS_RULES:
+            return true;
         case FEATURE_BACKUP_MOODLE2:
             return true;
         case FEATURE_MOD_PURPOSE:
@@ -57,6 +61,7 @@ function imageblog_add_instance($data, $mform = null) {
 
     $data->timecreated = time();
     $data->timemodified = $data->timecreated;
+    $data->completionsubmit = empty($data->completionsubmit) ? 0 : 1;
     $data->id = $DB->insert_record('imageblog', $data);
 
     imageblog_grade_item_update($data);
@@ -76,6 +81,7 @@ function imageblog_update_instance($data, $mform = null) {
 
     $data->timemodified = time();
     $data->id = $data->instance;
+    $data->completionsubmit = empty($data->completionsubmit) ? 0 : 1;
     $DB->update_record('imageblog', $data);
 
     // Reload the full record: the form data omits fields that are not form

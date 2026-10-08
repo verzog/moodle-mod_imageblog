@@ -25,6 +25,7 @@
 require(__DIR__ . '/../../config.php');
 require_once(__DIR__ . '/lib.php');
 require_once($CFG->libdir . '/formslib.php');
+require_once($CFG->libdir . '/completionlib.php');
 
 $id = required_param('id', PARAM_INT); // Course module id.
 
@@ -45,6 +46,10 @@ $canreveal = has_capability('mod/imageblog:reveal', $context);
 $cansubmit = has_capability('mod/imageblog:submit', $context);
 $canask = has_capability('mod/imageblog:askquestion', $context);
 $cananswer = has_capability('mod/imageblog:answerquestion', $context);
+
+// Mark the activity viewed for completion tracking.
+$completion = new completion_info($course);
+$completion->set_module_viewed($cm);
 
 // Teacher action: reveal the outcome and award grades.
 if ($canreveal && empty($imageblog->revealed) && optional_param('reveal', 0, PARAM_BOOL) && confirm_sesskey()) {
@@ -112,6 +117,10 @@ if ($cansubmit && empty($imageblog->revealed)) {
                 'timemodified' => $now,
             ];
             $DB->insert_record('imageblog_diagnoses', $record);
+        }
+        // Submitting a diagnosis can satisfy the "submit a diagnosis" completion rule.
+        if ($completion->is_enabled($cm) && !empty($imageblog->completionsubmit)) {
+            $completion->update_state($cm, COMPLETION_COMPLETE, $USER->id);
         }
         redirect($pageurl, get_string('diagnosissaved', 'mod_imageblog'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
