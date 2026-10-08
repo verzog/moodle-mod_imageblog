@@ -35,6 +35,9 @@ final class completion_test extends \advanced_testcase {
         global $DB;
 
         $this->resetAfterTest();
+        // Completion rules are only registered on the course module when
+        // completion is enabled site-wide as well as in the course.
+        set_config('enablecompletion', 1);
 
         $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
         $student = $this->getDataGenerator()->create_and_enrol($course, 'student');
