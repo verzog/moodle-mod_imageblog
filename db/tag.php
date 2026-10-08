@@ -28,5 +28,7 @@ $tagareas = [
     [
         'itemtype' => 'imageblog',
         'component' => 'mod_imageblog',
+        'callback' => 'mod_imageblog_get_tagged_cases',
+        'callbackfile' => '/mod/imageblog/lib.php',
     ],
 ];

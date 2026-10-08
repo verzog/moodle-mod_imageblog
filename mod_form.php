@@ -143,6 +143,8 @@ class mod_imageblog_mod_form extends moodleform_mod {
      * @return void
      */
     public function data_preprocessing(&$defaultvalues) {
+        parent::data_preprocessing($defaultvalues);
+
         if (!empty($this->current->id)) {
             $defaultvalues['casetags'] = \core_tag_tag::get_item_tags_array(
                 'mod_imageblog',
