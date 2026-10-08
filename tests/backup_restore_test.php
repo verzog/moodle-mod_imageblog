@@ -25,6 +25,7 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 require_once($CFG->dirroot . '/backup/util/includes/backup_includes.php');
 require_once($CFG->dirroot . '/backup/util/includes/restore_includes.php');
+require_once($CFG->dirroot . '/mod/imageblog/lib.php');
 
 /**
  * Backup and restore tests for mod_imageblog.
@@ -177,6 +178,45 @@ final class backup_restore_test extends \advanced_testcase {
         $restored = $DB->get_record('imageblog', ['course' => $targetcourse->id], '*', MUST_EXIST);
         $restoredtags = \core_tag_tag::get_item_tags_array('mod_imageblog', 'imageblog', $restored->id);
         $this->assertEqualsCanonicalizing(['Chest', 'Pneumonia'], array_values($restoredtags));
+    }
+
+    /**
+     * A case's 360 degree panorama image is backed up and restored, so the
+     * viewer still has its source after course copy, import or restore.
+     */
+    public function test_backup_restore_carries_panorama(): void {
+        global $DB, $USER;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $course = $this->getDataGenerator()->create_course();
+
+        /** @var \mod_imageblog_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
+        $imageblog = $generator->create_instance(['course' => $course->id]);
+        $context = \context_module::instance($imageblog->cmid);
+
+        get_file_storage()->create_file_from_string([
+            'contextid' => $context->id,
+            'component' => 'mod_imageblog',
+            'filearea' => 'panorama',
+            'itemid' => 0,
+            'filepath' => '/',
+            'filename' => 'pano.jpg',
+        ], 'fake-equirectangular-bytes');
+
+        $backupid = $this->backup_activity($imageblog->cmid, $USER->id);
+        $targetcourse = $this->getDataGenerator()->create_course();
+        $this->restore_into_course($backupid, $targetcourse->id, $USER->id);
+
+        $restored = $DB->get_record('imageblog', ['course' => $targetcourse->id], '*', MUST_EXIST);
+        $restoredcm = get_coursemodule_from_instance('imageblog', $restored->id, $targetcourse->id, false, MUST_EXIST);
+        $restoredcontext = \context_module::instance($restoredcm->id);
+
+        $url = imageblog_get_panorama_url($restoredcontext);
+        $this->assertInstanceOf(\moodle_url::class, $url);
+        $this->assertStringContainsString('pano.jpg', $url->out(false));
     }
 
     /**

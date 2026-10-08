@@ -4,6 +4,18 @@ All notable changes to the Image blog activity (`mod_imageblog`) are documented
 here. The format is based on [Keep a Changelog](https://keepachangelog.com/), and
 the project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [0.9.0] - 2026-10-08
+
+### Added
+- **360° panoramas.** A case can include an optional equirectangular panorama
+  image, rendered as an interactive viewer on the case page with the bundled
+  Pannellum library (loaded lazily, with a graceful fallback). Adds the
+  *Include a 360° panorama* toggle and a file uploader on the activity form, a
+  `panorama` module-context file area served through `imageblog_pluginfile`,
+  backup/restore of the image, `styles.css`, `thirdparty/pannellum` with
+  `thirdpartylibs.xml`, and PHPUnit tests. No schema change (the image lives in
+  file storage). This completes the phased build-out in the design plan.
+
 ## [0.8.0] - 2026-10-08
 
 ### Added
@@ -109,6 +121,7 @@ Initial walking skeleton.
   difficulty multipliers and the best-answer bonus — see
   `moodle-local_imageblog/doc/mod_imageblog-grading-plan.md`.
 
+[0.9.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.9.0
 [0.8.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.8.0
 [0.7.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.7.0
 [0.6.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.6.0

@@ -47,6 +47,13 @@ $cansubmit = has_capability('mod/imageblog:submit', $context);
 $canask = has_capability('mod/imageblog:askquestion', $context);
 $cananswer = has_capability('mod/imageblog:answerquestion', $context);
 
+// A case may carry an optional 360 degree panorama. Load the bundled Pannellum
+// stylesheet before any output; the viewer script is loaded lazily below.
+$panoramaurl = imageblog_get_panorama_url($context);
+if ($panoramaurl) {
+    $PAGE->requires->css(new moodle_url('/mod/imageblog/thirdparty/pannellum/pannellum.css'));
+}
+
 // Mark the activity viewed for completion tracking.
 $completion = new completion_info($course);
 $completion->set_module_viewed($cm);
@@ -205,6 +212,59 @@ if (!empty($imageblog->intro)) {
 
 echo $OUTPUT->heading(get_string('case', 'mod_imageblog'), 3);
 echo $OUTPUT->box(format_text($imageblog->casequestion, FORMAT_MOODLE), 'generalbox');
+
+if ($panoramaurl) {
+    // The viewer initialises this region from the data attributes below. Pannellum
+    // is a plain (non-AMD) global, so it is injected on demand and its presence
+    // checked before use; any load failure degrades to the CSS fallback message.
+    echo html_writer::div('', 'mod-imageblog-panorama mb-3', [
+        'data-region' => 'mod-imageblog-panorama',
+        'data-fallback' => get_string('panoramaunavailable', 'mod_imageblog'),
+        'role' => 'region',
+        'aria-label' => get_string('panorama', 'mod_imageblog'),
+    ]);
+    $pannellumjs = (new moodle_url('/mod/imageblog/thirdparty/pannellum/pannellum.js'))->out(false);
+    $config = json_encode([
+        'js' => $pannellumjs,
+        'img' => $panoramaurl->out(false),
+    ]);
+    $PAGE->requires->js_amd_inline("
+require([], function() {
+    var cfg = $config;
+    var region = document.querySelector('[data-region=\"mod-imageblog-panorama\"]');
+    if (!region || region.dataset.initialised === '1') {
+        return;
+    }
+    var fail = function() {
+        region.classList.add('mod-imageblog-panorama-fallback');
+    };
+    var start = function() {
+        if (!window.pannellum) {
+            fail();
+            return;
+        }
+        region.dataset.initialised = '1';
+        window.pannellum.viewer(region, {
+            type: 'equirectangular',
+            panorama: cfg.img,
+            autoLoad: true,
+            showControls: true,
+            hfov: 100
+        });
+    };
+    if (window.pannellum) {
+        start();
+        return;
+    }
+    var script = document.createElement('script');
+    script.src = cfg.js;
+    script.async = true;
+    script.onload = start;
+    script.onerror = fail;
+    document.head.appendChild(script);
+});
+");
+}
 
 $casetags = core_tag_tag::get_item_tags('mod_imageblog', 'imageblog', $imageblog->id);
 if ($casetags) {

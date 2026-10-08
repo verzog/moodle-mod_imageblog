@@ -1,0 +1,24 @@
+/* The 360 degree panorama viewer region on the case view. */
+.mod-imageblog-panorama {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    min-height: 320px;
+    background: #000;
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+/* Shown when the viewer script cannot load; the message comes from a lang string. */
+.mod-imageblog-panorama-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mod-imageblog-panorama-fallback::before {
+    content: attr(data-fallback);
+    padding: 1rem;
+    color: #adb5bd;
+    font-size: 0.875rem;
+    text-align: center;
+}

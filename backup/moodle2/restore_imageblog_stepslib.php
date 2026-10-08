@@ -142,7 +142,8 @@ class restore_imageblog_activity_structure_step extends restore_activity_structu
             }
         }
 
-        // Restore the activity intro file area.
+        // Restore the activity intro and panorama file areas.
         $this->add_related_files('mod_imageblog', 'intro', null);
+        $this->add_related_files('mod_imageblog', 'panorama', null);
     }
 }

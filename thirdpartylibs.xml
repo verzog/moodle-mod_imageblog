@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<libraries>
+    <library>
+        <location>thirdparty/pannellum</location>
+        <name>Pannellum</name>
+        <version>2.5.6</version>
+        <license>MIT</license>
+        <licenseversion></licenseversion>
+        <repository>https://github.com/mpetroff/pannellum</repository>
+    </library>
+</libraries>

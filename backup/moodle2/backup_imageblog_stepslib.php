@@ -91,8 +91,10 @@ class backup_imageblog_activity_structure_step extends backup_activity_structure
         $question->annotate_ids('user', 'userid');
         $question->annotate_ids('user', 'answeredby');
 
-        // Define file annotations: the activity intro may embed files.
+        // Define file annotations: the activity intro may embed files, and the
+        // case may carry an optional 360 degree panorama image (itemid 0).
         $imageblog->annotate_files('mod_imageblog', 'intro', null);
+        $imageblog->annotate_files('mod_imageblog', 'panorama', null);
 
         return $this->prepare_activity_structure($imageblog);
     }
