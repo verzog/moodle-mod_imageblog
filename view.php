@@ -53,10 +53,22 @@ $completion->set_module_viewed($cm);
 
 // Teacher action: reveal the outcome and award grades.
 if ($canreveal && empty($imageblog->revealed) && optional_param('reveal', 0, PARAM_BOOL) && confirm_sesskey()) {
-    $DB->set_field('imageblog', 'revealed', 1, ['id' => $imageblog->id]);
-    $imageblog->revealed = 1;
-    imageblog_update_grades($imageblog);
-    imageblog_notify_outcome_revealed($imageblog, $cm, $context, $USER);
+    // Serialize the reveal so concurrent or double-submitted requests perform the
+    // grade pass and notifications exactly once, from the request that flips the flag.
+    $lockfactory = \core\lock\lock_config::get_lock_factory('mod_imageblog_reveal');
+    $lock = $lockfactory->get_lock('imageblog_' . $imageblog->id, 10);
+    if ($lock) {
+        try {
+            if (!$DB->get_field('imageblog', 'revealed', ['id' => $imageblog->id])) {
+                $DB->set_field('imageblog', 'revealed', 1, ['id' => $imageblog->id]);
+                $imageblog = $DB->get_record('imageblog', ['id' => $imageblog->id], '*', MUST_EXIST);
+                imageblog_update_grades($imageblog);
+                imageblog_notify_outcome_revealed($imageblog, $cm, $context, $USER);
+            }
+        } finally {
+            $lock->release();
+        }
+    }
     redirect($pageurl, get_string('outcomerevealed', 'mod_imageblog'), null, \core\output\notification::NOTIFY_SUCCESS);
 }
 
@@ -169,13 +181,17 @@ if ($cananswer && $answerquestionid) {
     if ($answerform->is_cancelled()) {
         redirect($pageurl);
     } else if ($data = $answerform->get_data()) {
+        // Only the first answer notifies the asker; editing an existing answer does not.
+        $wasunanswered = empty($answerquestion->answeredby);
         $now = time();
         $answerquestion->answer = $data->answertext;
         $answerquestion->answeredby = $USER->id;
         $answerquestion->timeanswered = $now;
         $answerquestion->timemodified = $now;
         $DB->update_record('imageblog_questions', $answerquestion);
-        imageblog_notify_question_answered($imageblog, $cm, $answerquestion, $USER);
+        if ($wasunanswered) {
+            imageblog_notify_question_answered($imageblog, $cm, $answerquestion, $USER);
+        }
         redirect($pageurl, get_string('answersaved', 'mod_imageblog'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
 }

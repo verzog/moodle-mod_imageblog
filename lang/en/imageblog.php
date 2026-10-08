@@ -66,6 +66,7 @@ $string['imageblog:submit'] = 'Submit a diagnosis';
 $string['imageblog:view'] = 'View an image blog activity';
 $string['markbest'] = 'Mark as best';
 $string['messagebody_outcomerevealed'] = 'The outcome of the case "{$a->name}" in {$a->course} has been revealed, and your diagnosis has been graded.';
+$string['messagebody_outcomerevealed_nograde'] = 'The outcome of the case "{$a->name}" in {$a->course} has been revealed.';
 $string['messagebody_questionanswered'] = 'Your question on the case "{$a->name}" in {$a->course} has been answered.';
 $string['messagebody_questionposted'] = 'A reader asked a question on the case "{$a->name}" in {$a->course}.';
 $string['messageprovider:outcomerevealed'] = 'Case outcome revealed';

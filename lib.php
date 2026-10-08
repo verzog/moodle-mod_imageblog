@@ -440,19 +440,28 @@ function mod_imageblog_get_tagged_cases(
  * @param stdClass $imageblog the instance record
  * @param stdClass $cm the course module record
  * @param moodle_url $url the activity view url
+ * @param string|null $bodykey the body string key, or null to derive it from $name
  * @return mixed the message id, or false on failure
  */
-function imageblog_send_notification($name, $userfrom, $userto, $a, $imageblog, $cm, moodle_url $url) {
+function imageblog_send_notification($name, $userfrom, $userto, $a, $imageblog, $cm, moodle_url $url, $bodykey = null) {
+    $bodykey = $bodykey ?? ('messagebody_' . $name);
+
+    // Render the strings in the recipient's language: the Message API stores the
+    // text as supplied rather than translating it when it is displayed.
+    $sm = get_string_manager();
+    $subject = $sm->get_string('messagesubject_' . $name, 'mod_imageblog', $a, $userto->lang);
+    $body = $sm->get_string($bodykey, 'mod_imageblog', $a, $userto->lang);
+
     $message = new \core\message\message();
     $message->component = 'mod_imageblog';
     $message->name = $name;
     $message->userfrom = $userfrom;
     $message->userto = $userto;
-    $message->subject = get_string('messagesubject_' . $name, 'mod_imageblog', $a);
-    $message->fullmessage = get_string('messagebody_' . $name, 'mod_imageblog', $a);
+    $message->subject = $subject;
+    $message->fullmessage = $body;
     $message->fullmessageformat = FORMAT_PLAIN;
-    $message->fullmessagehtml = html_writer::tag('p', get_string('messagebody_' . $name, 'mod_imageblog', $a));
-    $message->smallmessage = get_string('messagebody_' . $name, 'mod_imageblog', $a);
+    $message->fullmessagehtml = html_writer::tag('p', $body);
+    $message->smallmessage = $body;
     $message->notification = 1;
     $message->courseid = $cm->course;
     $message->contexturl = $url->out(false);
@@ -480,12 +489,16 @@ function imageblog_notify_outcome_revealed($imageblog, $cm, $context, $userfrom)
 
     $a = imageblog_notification_data($imageblog, $cm);
     $url = new moodle_url('/mod/imageblog/view.php', ['id' => $cm->id]);
+    // Only the graded variant mentions a grade; an ungraded instance uses the plain one.
+    $bodykey = !empty($imageblog->grade) && $imageblog->grade > 0
+        ? 'messagebody_outcomerevealed'
+        : 'messagebody_outcomerevealed_nograde';
     foreach ($recipients as $recipient) {
         $userto = \core_user::get_user($recipient->userid);
         if (!$userto || $userto->deleted) {
             continue;
         }
-        imageblog_send_notification('outcomerevealed', $userfrom, $userto, $a, $imageblog, $cm, $url);
+        imageblog_send_notification('outcomerevealed', $userfrom, $userto, $a, $imageblog, $cm, $url, $bodykey);
     }
 }
 
@@ -499,7 +512,8 @@ function imageblog_notify_outcome_revealed($imageblog, $cm, $context, $userfrom)
  * @return void
  */
 function imageblog_notify_question_posted($imageblog, $cm, $context, $userfrom) {
-    $recipients = get_enrolled_users($context, 'mod/imageblog:answerquestion');
+    // onlyactive = true: skip suspended or out-of-date enrolments, which cannot open the activity.
+    $recipients = get_enrolled_users($context, 'mod/imageblog:answerquestion', 0, 'u.*', null, 0, 0, true);
     if (!$recipients) {
         return;
     }
