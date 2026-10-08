@@ -41,6 +41,7 @@ class restore_imageblog_activity_structure_step extends restore_activity_structu
         $paths[] = new restore_path_element('imageblog', '/activity/imageblog');
         if ($userinfo) {
             $paths[] = new restore_path_element('imageblog_diagnosis', '/activity/imageblog/diagnoses/diagnosis');
+            $paths[] = new restore_path_element('imageblog_question', '/activity/imageblog/questions/question');
         }
 
         return $this->prepare_activity_structure($paths);
@@ -84,6 +85,25 @@ class restore_imageblog_activity_structure_step extends restore_activity_structu
 
         $newid = $DB->insert_record('imageblog_diagnoses', $data);
         $this->set_mapping('imageblog_diagnosis', $oldid, $newid);
+    }
+
+    /**
+     * Restore one question and its answer.
+     *
+     * @param array $data the parsed question data
+     * @return void
+     */
+    protected function process_imageblog_question($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $data->imageblogid = $this->get_new_parentid('imageblog');
+        $data->userid = $this->get_mappingid('user', $data->userid);
+
+        // The answeredby field is 0 while unanswered; only remap a real user reference.
+        $data->answeredby = empty($data->answeredby) ? 0 : (int) $this->get_mappingid('user', $data->answeredby);
+
+        $DB->insert_record('imageblog_questions', $data);
     }
 
     /**

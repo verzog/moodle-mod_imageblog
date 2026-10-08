@@ -47,5 +47,25 @@
         <INDEX NAME="imageblogid-userid" UNIQUE="true" FIELDS="imageblogid, userid"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="imageblog_questions" COMMENT="Reader questions on a case and the teacher's answers.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="imageblogid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The image blog instance this question belongs to."/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The user who asked the question."/>
+        <FIELD NAME="question" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="The question text."/>
+        <FIELD NAME="answer" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The answer text, or null while unanswered."/>
+        <FIELD NAME="answeredby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The user who answered, or 0 while unanswered."/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time the question was asked."/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time the question or answer was last changed."/>
+        <FIELD NAME="timeanswered" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time the question was answered, or 0 while unanswered."/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_imageblog" TYPE="foreign" FIELDS="imageblogid" REFTABLE="imageblog" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="imageblogid" UNIQUE="false" FIELDS="imageblogid"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

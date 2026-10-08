@@ -4,6 +4,17 @@ All notable changes to the Image blog activity (`mod_imageblog`) are documented
 here. The format is based on [Keep a Changelog](https://keepachangelog.com/), and
 the project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] - 2026-10-07
+
+### Added
+- **Questions & answers on a case.** Readers can ask questions about a case
+  (new `mod/imageblog:askquestion` capability) and teachers can answer or edit
+  an answer (`mod/imageblog:answerquestion`). Answered questions are shown to
+  everyone; peers see other readers' questions anonymously, while the asker and
+  teachers see the name. Adds the `imageblog_questions` table (with an upgrade
+  step), ask/answer forms, backup/restore of questions and answers (remapping
+  both asker and answerer), and full privacy export/erasure for questions.
+
 ## [0.4.0] - 2026-10-07
 
 ### Added
@@ -67,6 +78,7 @@ Initial walking skeleton.
   difficulty multipliers and the best-answer bonus — see
   `moodle-local_imageblog/doc/mod_imageblog-grading-plan.md`.
 
+[0.5.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.5.0
 [0.4.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.4.0
 [0.3.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.3.0
 [0.2.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.2.0

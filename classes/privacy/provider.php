@@ -27,8 +27,9 @@ use core_privacy\local\request\writer;
 /**
  * Privacy provider for mod_imageblog.
  *
- * The activity stores one diagnosis per user per instance; this provider
- * exports and deletes that data.
+ * The activity stores one diagnosis per user per instance, plus questions
+ * readers ask on a case and the teacher answers; this provider exports and
+ * deletes that data.
  *
  * @package    mod_imageblog
  * @copyright  2026 Vernon Spain
@@ -51,6 +52,16 @@ class provider implements
             'timecreated' => 'privacy:metadata:imageblog_diagnoses:timecreated',
             'timemodified' => 'privacy:metadata:imageblog_diagnoses:timemodified',
         ], 'privacy:metadata:imageblog_diagnoses');
+
+        $collection->add_database_table('imageblog_questions', [
+            'userid' => 'privacy:metadata:imageblog_questions:userid',
+            'question' => 'privacy:metadata:imageblog_questions:question',
+            'answer' => 'privacy:metadata:imageblog_questions:answer',
+            'answeredby' => 'privacy:metadata:imageblog_questions:answeredby',
+            'timecreated' => 'privacy:metadata:imageblog_questions:timecreated',
+            'timemodified' => 'privacy:metadata:imageblog_questions:timemodified',
+            'timeanswered' => 'privacy:metadata:imageblog_questions:timeanswered',
+        ], 'privacy:metadata:imageblog_questions');
 
         return $collection;
     }
@@ -75,6 +86,21 @@ class provider implements
             'modname' => 'imageblog',
             'contextlevel' => CONTEXT_MODULE,
             'userid' => $userid,
+        ]);
+
+        // Contexts where the user asked or answered a question.
+        $sql = "SELECT ctx.id
+                  FROM {imageblog_questions} q
+                  JOIN {imageblog} i ON i.id = q.imageblogid
+                  JOIN {course_modules} cm ON cm.instance = i.id
+                  JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                  JOIN {context} ctx ON ctx.instanceid = cm.id AND ctx.contextlevel = :contextlevel
+                 WHERE q.userid = :askerid OR q.answeredby = :answererid";
+        $contextlist->add_from_sql($sql, [
+            'modname' => 'imageblog',
+            'contextlevel' => CONTEXT_MODULE,
+            'askerid' => $userid,
+            'answererid' => $userid,
         ]);
 
         return $contextlist;
@@ -103,6 +129,28 @@ class provider implements
             'modname' => 'imageblog',
             'cmid' => $context->instanceid,
         ]);
+
+        $questionsql = "SELECT q.userid
+                          FROM {imageblog_questions} q
+                          JOIN {imageblog} i ON i.id = q.imageblogid
+                          JOIN {course_modules} cm ON cm.instance = i.id
+                          JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                         WHERE cm.id = :cmid";
+        $userlist->add_from_sql('userid', $questionsql, [
+            'modname' => 'imageblog',
+            'cmid' => $context->instanceid,
+        ]);
+
+        $answersql = "SELECT q.answeredby
+                        FROM {imageblog_questions} q
+                        JOIN {imageblog} i ON i.id = q.imageblogid
+                        JOIN {course_modules} cm ON cm.instance = i.id
+                        JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                       WHERE cm.id = :cmid AND q.answeredby <> 0";
+        $userlist->add_from_sql('answeredby', $answersql, [
+            'modname' => 'imageblog',
+            'cmid' => $context->instanceid,
+        ]);
     }
 
     /**
@@ -127,18 +175,66 @@ class provider implements
             if (!$cm) {
                 continue;
             }
+
+            // The user's own diagnosis, if any.
             $record = $DB->get_record('imageblog_diagnoses', ['imageblogid' => $cm->instance, 'userid' => $user->id]);
-            if (!$record) {
+            if ($record) {
+                $bestid = $DB->get_field('imageblog', 'bestdiagnosisid', ['id' => $cm->instance]);
+                writer::with_context($context)->export_data([], (object) [
+                    'diagnosis' => $record->diagnosis,
+                    'markedbest' => transform::yesno(!empty($bestid) && (int) $bestid === (int) $record->id),
+                    'timecreated' => transform::datetime($record->timecreated),
+                    'timemodified' => transform::datetime($record->timemodified),
+                ]);
+            }
+
+            self::export_questions($context, $cm->instance, (int) $user->id);
+        }
+    }
+
+    /**
+     * Export the questions a user asked, and the answers they authored, on one case.
+     *
+     * @param \context $context the module context being exported
+     * @param int $imageblogid the imageblog instance id
+     * @param int $userid the user being exported
+     * @return void
+     */
+    protected static function export_questions(\context $context, int $imageblogid, int $userid): void {
+        global $DB;
+
+        $folder = get_string('questionsheading', 'mod_imageblog');
+
+        $asked = $DB->get_records(
+            'imageblog_questions',
+            ['imageblogid' => $imageblogid, 'userid' => $userid],
+            'timecreated ASC'
+        );
+        foreach ($asked as $question) {
+            writer::with_context($context)->export_data([$folder, 'asked-' . $question->id], (object) [
+                'question' => $question->question,
+                'answer' => $question->answer,
+                'answered' => transform::yesno(!empty($question->answeredby)),
+                'timecreated' => transform::datetime($question->timecreated),
+                'timemodified' => transform::datetime($question->timemodified),
+            ]);
+        }
+
+        $answered = $DB->get_records(
+            'imageblog_questions',
+            ['imageblogid' => $imageblogid, 'answeredby' => $userid],
+            'timeanswered ASC'
+        );
+        foreach ($answered as $question) {
+            if ((int) $question->userid === $userid) {
+                // Already exported above as the user's own question.
                 continue;
             }
-            $bestid = $DB->get_field('imageblog', 'bestdiagnosisid', ['id' => $cm->instance]);
-            $data = (object) [
-                'diagnosis' => $record->diagnosis,
-                'markedbest' => transform::yesno(!empty($bestid) && (int) $bestid === (int) $record->id),
-                'timecreated' => transform::datetime($record->timecreated),
-                'timemodified' => transform::datetime($record->timemodified),
-            ];
-            writer::with_context($context)->export_data([], $data);
+            writer::with_context($context)->export_data([$folder, 'answered-' . $question->id], (object) [
+                'question' => $question->question,
+                'answer' => $question->answer,
+                'timeanswered' => transform::datetime($question->timeanswered),
+            ]);
         }
     }
 
@@ -159,6 +255,7 @@ class provider implements
             return;
         }
         $DB->delete_records('imageblog_diagnoses', ['imageblogid' => $cm->instance]);
+        $DB->delete_records('imageblog_questions', ['imageblogid' => $cm->instance]);
         self::clear_dangling_best($cm->instance);
     }
 
@@ -181,6 +278,9 @@ class provider implements
                 continue;
             }
             $DB->delete_records('imageblog_diagnoses', ['imageblogid' => $cm->instance, 'userid' => $user->id]);
+            // Remove the questions this user asked, and strip the answers they authored on others' questions.
+            $DB->delete_records('imageblog_questions', ['imageblogid' => $cm->instance, 'userid' => $user->id]);
+            self::strip_answers($cm->instance, 'answeredby = :answerer', ['answerer' => $user->id]);
             self::clear_dangling_best($cm->instance);
         }
     }
@@ -206,7 +306,29 @@ class provider implements
         [$insql, $inparams] = $DB->get_in_or_equal($userlist->get_userids(), SQL_PARAMS_NAMED);
         $params = array_merge(['imageblogid' => $cm->instance], $inparams);
         $DB->delete_records_select('imageblog_diagnoses', "imageblogid = :imageblogid AND userid {$insql}", $params);
+        $DB->delete_records_select('imageblog_questions', "imageblogid = :imageblogid AND userid {$insql}", $params);
+        self::strip_answers($cm->instance, "answeredby {$insql}", $inparams);
         self::clear_dangling_best($cm->instance);
+    }
+
+    /**
+     * Blank the answers authored by matched users, leaving the questions others asked intact.
+     *
+     * @param int $imageblogid the imageblog instance id
+     * @param string $answerwhere a SQL fragment matching the answeredby column
+     * @param array $answerparams named parameters for the fragment
+     * @return void
+     */
+    protected static function strip_answers(int $imageblogid, string $answerwhere, array $answerparams): void {
+        global $DB;
+
+        $select = "imageblogid = :imageblogid AND {$answerwhere}";
+        $params = array_merge(['imageblogid' => $imageblogid], $answerparams);
+
+        // Clear the content first: the last step blanks answeredby, which the fragment matches on.
+        $DB->set_field_select('imageblog_questions', 'answer', null, $select, $params);
+        $DB->set_field_select('imageblog_questions', 'timeanswered', 0, $select, $params);
+        $DB->set_field_select('imageblog_questions', 'answeredby', 0, $select, $params);
     }
 
     /**

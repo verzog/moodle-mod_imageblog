@@ -102,6 +102,7 @@ function imageblog_delete_instance($id) {
         return false;
     }
 
+    $DB->delete_records('imageblog_questions', ['imageblogid' => $imageblog->id]);
     $DB->delete_records('imageblog_diagnoses', ['imageblogid' => $imageblog->id]);
     $DB->delete_records('imageblog', ['id' => $imageblog->id]);
 
