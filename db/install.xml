@@ -22,6 +22,7 @@
         <FIELD NAME="correctfactor" TYPE="number" LENGTH="10" DECIMALS="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Fraction of full marks for a correct diagnosis."/>
         <FIELD NAME="bestfactor" TYPE="number" LENGTH="10" DECIMALS="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Fraction of full marks for the teacher-selected best diagnosis."/>
         <FIELD NAME="bestdiagnosisid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The id of the diagnosis marked best, or 0 for none."/>
+        <FIELD NAME="completionsubmit" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Completion rule: require the student to submit a diagnosis (0 or 1)."/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time the instance was created."/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time the instance was last modified."/>
       </FIELDS>

@@ -4,6 +4,17 @@ All notable changes to the Image blog activity (`mod_imageblog`) are documented
 here. The format is based on [Keep a Changelog](https://keepachangelog.com/), and
 the project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] - 2026-10-08
+
+### Added
+- **Activity completion.** The activity now supports completion tracking: a
+  custom rule *Student must submit a diagnosis* (`completionsubmit`) that
+  completes once the student submits, plus the standard *view* rule. Adds the
+  `completionsubmit` instance setting (with an upgrade step), the
+  `\mod_imageblog\completion\custom_completion` class, completion marking on
+  view and on diagnosis submission, backup of the new setting, and a PHPUnit
+  test for the rule state.
+
 ## [0.5.0] - 2026-10-07
 
 ### Added
@@ -78,6 +89,7 @@ Initial walking skeleton.
   difficulty multipliers and the best-answer bonus — see
   `moodle-local_imageblog/doc/mod_imageblog-grading-plan.md`.
 
+[0.6.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.6.0
 [0.5.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.5.0
 [0.4.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.4.0
 [0.3.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.3.0

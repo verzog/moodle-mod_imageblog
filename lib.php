@@ -36,6 +36,10 @@ function imageblog_supports($feature) {
             return true;
         case FEATURE_GRADE_HAS_GRADE:
             return true;
+        case FEATURE_COMPLETION_TRACKS_VIEWS:
+            return true;
+        case FEATURE_COMPLETION_HAS_RULES:
+            return true;
         case FEATURE_BACKUP_MOODLE2:
             return true;
         case FEATURE_MOD_PURPOSE:
@@ -57,6 +61,7 @@ function imageblog_add_instance($data, $mform = null) {
 
     $data->timecreated = time();
     $data->timemodified = $data->timecreated;
+    $data->completionsubmit = empty($data->completionsubmit) ? 0 : 1;
     $data->id = $DB->insert_record('imageblog', $data);
 
     imageblog_grade_item_update($data);
@@ -76,6 +81,14 @@ function imageblog_update_instance($data, $mform = null) {
 
     $data->timemodified = time();
     $data->id = $data->instance;
+    // Only touch the completion rule when the teacher could actually edit it:
+    // once a learner has completion data Moodle locks and omits these controls,
+    // so an unconditional normalisation would silently disable the stored rule.
+    if (!empty($data->completionunlocked)) {
+        $data->completionsubmit = empty($data->completionsubmit) ? 0 : 1;
+    } else {
+        unset($data->completionsubmit);
+    }
     $DB->update_record('imageblog', $data);
 
     // Reload the full record: the form data omits fields that are not form
@@ -109,6 +122,36 @@ function imageblog_delete_instance($id) {
     imageblog_grade_item_delete($imageblog);
 
     return true;
+}
+
+/**
+ * Provide course-module info, including the custom completion rules in use.
+ *
+ * @param stdClass $coursemodule the course module record
+ * @return cached_cm_info|false the course-module info, or false if the instance is missing
+ */
+function imageblog_get_coursemodule_info($coursemodule) {
+    global $DB;
+
+    $fields = 'id, name, intro, introformat, completionsubmit';
+    $imageblog = $DB->get_record('imageblog', ['id' => $coursemodule->instance], $fields);
+    if (!$imageblog) {
+        return false;
+    }
+
+    $info = new cached_cm_info();
+    $info->name = $imageblog->name;
+
+    if ($coursemodule->showdescription) {
+        $info->content = format_module_intro('imageblog', $imageblog, $coursemodule->id, false);
+    }
+
+    // Expose the custom completion rule so the completion API treats it as available.
+    if ($coursemodule->completion == COMPLETION_TRACKING_AUTOMATIC) {
+        $info->customdata['customcompletionrules']['completionsubmit'] = $imageblog->completionsubmit;
+    }
+
+    return $info;
 }
 
 /**

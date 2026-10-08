@@ -102,5 +102,17 @@ function xmldb_imageblog_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026100701, 'imageblog');
     }
 
+    if ($oldversion < 2026100800) {
+        $table = new xmldb_table('imageblog');
+
+        $field = new xmldb_field('completionsubmit');
+        $field->set_attributes(XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'bestdiagnosisid');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_mod_savepoint(true, 2026100800, 'imageblog');
+    }
+
     return true;
 }
