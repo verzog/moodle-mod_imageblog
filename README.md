@@ -10,12 +10,12 @@ local plugin is the public, site-wide showcase, while this activity brings the
 clinical-case flow into a course where it can be graded and tracked. The two
 share a context-neutral scoring engine.
 
-> **Status: early alpha (v0.7.0).** It installs, adds to a course, shows a
+> **Status: early alpha (v0.8.0).** It installs, adds to a course, shows a
 > case, accepts a diagnosis, writes a CPD-style grade on reveal (with a
 > teacher-selected best-answer bonus), supports reader questions with teacher
-> answers, tags cases for browsing, tracks activity completion, and backs up
-> and restores cleanly. 360° panoramas and notifications are not here yet —
-> see the design plan referenced below.
+> answers, tags cases for browsing, tracks activity completion, sends
+> notifications on key events, and backs up and restores cleanly. 360°
+> panoramas are not here yet — see the design plan referenced below.
 
 ## Requirements
 
@@ -85,11 +85,18 @@ specialty or any scheme the teacher chooses. Tags appear on the case and link
 to Moodle's tag pages, so a reader can follow a tag to other cases that share
 it.
 
+## Notifications
+
+The activity sends notifications through Moodle's messaging system on three
+events: when the teacher reveals a case outcome, each reader who submitted a
+diagnosis is notified; when a reader posts a question, teachers who can answer
+are notified; and when a teacher answers, the asker is notified. Each message
+links back to the case and respects the recipient's messaging preferences.
+
 ## Roadmap
 
 The design and phased plan live in the local plugin repository at
-`doc/mod_imageblog-grading-plan.md`. Next milestones: 360° panoramas and
-notifications.
+`doc/mod_imageblog-grading-plan.md`. Next milestone: 360° panoramas.
 
 ## Licence
 
