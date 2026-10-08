@@ -54,6 +54,20 @@ if ($panoramaurl) {
     $PAGE->requires->css(new moodle_url('/mod/imageblog/thirdparty/pannellum/pannellum.css'));
 }
 
+// A case may also carry an optional 3D model (STL/PLY/OBJ/glTF/GLB). Resolve its
+// URL and viewer format from the stored file; the Three.js viewer loads lazily below.
+$modelurl = imageblog_get_model_url($context);
+$modelformat = '';
+if ($modelurl) {
+    $modelfiles = get_file_storage()->get_area_files($context->id, 'mod_imageblog', 'model', 0, 'itemid', false);
+    $modelfile = reset($modelfiles);
+    $modelformat = imageblog_model_format($modelfile->get_filename());
+    // An unrecognised extension means nothing can render it, so skip the viewer.
+    if ($modelformat === '') {
+        $modelurl = null;
+    }
+}
+
 // Mark the activity viewed for completion tracking.
 $completion = new completion_info($course);
 $completion->set_module_viewed($cm);
@@ -262,6 +276,174 @@ require([], function() {
     script.onload = start;
     script.onerror = fail;
     document.head.appendChild(script);
+});
+");
+}
+
+if ($modelurl) {
+    // The Three.js build and the format's loader are plain (non-AMD) globals, so
+    // they are injected in order on demand and checked before use; any load or
+    // parse failure degrades to the CSS fallback message.
+    echo html_writer::div('', 'mod-imageblog-model mb-3', [
+        'data-region' => 'mod-imageblog-model',
+        'data-fallback' => get_string('modelunavailable', 'mod_imageblog'),
+        'role' => 'region',
+        'aria-label' => get_string('model', 'mod_imageblog'),
+    ]);
+    $loadermap = ['gltf' => 'GLTFLoader', 'stl' => 'STLLoader', 'ply' => 'PLYLoader', 'obj' => 'OBJLoader'];
+    $threejs = (new moodle_url('/mod/imageblog/thirdparty/three/build/three.min.js'))->out(false);
+    $controlsjs = (new moodle_url('/mod/imageblog/thirdparty/three/js/controls/OrbitControls.js'))->out(false);
+    $loaderjs = (new moodle_url(
+        '/mod/imageblog/thirdparty/three/js/loaders/' . $loadermap[$modelformat] . '.js'
+    ))->out(false);
+    $config = json_encode([
+        'three' => $threejs,
+        'scripts' => [$controlsjs, $loaderjs],
+        'model' => $modelurl->out(false),
+        'format' => $modelformat,
+    ]);
+    $PAGE->requires->js_amd_inline("
+require([], function() {
+    var cfg = $config;
+    var region = document.querySelector('[data-region=\"mod-imageblog-model\"]');
+    if (!region || region.dataset.initialised === '1') {
+        return;
+    }
+    var fail = function() {
+        region.classList.add('mod-imageblog-model-fallback');
+    };
+    var loadScript = function(src) {
+        return new Promise(function(resolve, reject) {
+            var s = document.createElement('script');
+            s.async = false;
+            s.onload = resolve;
+            s.onerror = function() {
+                reject(new Error('script load failed'));
+            };
+            s.src = src;
+            document.head.appendChild(s);
+        });
+    };
+    var chain = Promise.resolve();
+    [cfg.three].concat(cfg.scripts).forEach(function(src) {
+        chain = chain.then(function() {
+            return loadScript(src);
+        });
+    });
+    chain.then(function() {
+        if (!window.THREE) {
+            fail();
+            return;
+        }
+        region.dataset.initialised = '1';
+        render(window.THREE);
+    }).catch(fail);
+
+    function render(THREE) {
+        var width = region.clientWidth || 640;
+        var height = Math.round(width * 9 / 16);
+        var scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a1a);
+        var camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100000);
+        var renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setPixelRatio(window.devicePixelRatio || 1);
+        renderer.setSize(width, height);
+        region.appendChild(renderer.domElement);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        var key = new THREE.DirectionalLight(0xffffff, 0.8);
+        key.position.set(1, 1, 1);
+        scene.add(key);
+        var controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        var frame = function(object3d) {
+            var box = new THREE.Box3().setFromObject(object3d);
+            var size = box.getSize(new THREE.Vector3());
+            var center = box.getCenter(new THREE.Vector3());
+            object3d.position.sub(center);
+            var maxdim = Math.max(size.x, size.y, size.z) || 1;
+            var dist = maxdim / (2 * Math.tan(Math.PI * camera.fov / 360));
+            camera.position.set(0, 0, dist * 1.8);
+            camera.near = Math.max(dist / 100, 0.01);
+            camera.far = dist * 100;
+            camera.updateProjectionMatrix();
+            controls.target.set(0, 0, 0);
+            controls.update();
+        };
+        var hasColour = function(geometry) {
+            return !!(geometry.getAttribute && geometry.getAttribute('color'));
+        };
+        var addMesh = function(geometry) {
+            geometry.computeVertexNormals();
+            var colour = hasColour(geometry);
+            var material = new THREE.MeshStandardMaterial({
+                color: colour ? 0xffffff : 0xb0b0b0,
+                vertexColors: colour,
+                metalness: 0.1,
+                roughness: 0.8
+            });
+            var mesh = new THREE.Mesh(geometry, material);
+            frame(mesh);
+            scene.add(mesh);
+        };
+        var addPoints = function(geometry) {
+            var box = new THREE.Box3().setFromBufferAttribute(geometry.getAttribute('position'));
+            var span = box.getSize(new THREE.Vector3());
+            var maxdim = Math.max(span.x, span.y, span.z) || 1;
+            var colour = hasColour(geometry);
+            var material = new THREE.PointsMaterial({
+                color: colour ? 0xffffff : 0xb0b0b0,
+                vertexColors: colour,
+                size: maxdim / 350,
+                sizeAttenuation: true
+            });
+            var points = new THREE.Points(geometry, material);
+            frame(points);
+            scene.add(points);
+        };
+        var addObject = function(object3d) {
+            frame(object3d);
+            scene.add(object3d);
+        };
+        try {
+            if (cfg.format === 'gltf') {
+                new THREE.GLTFLoader().load(cfg.model, function(gltf) {
+                    addObject(gltf.scene);
+                }, undefined, fail);
+            } else if (cfg.format === 'stl') {
+                new THREE.STLLoader().load(cfg.model, addMesh, undefined, fail);
+            } else if (cfg.format === 'ply') {
+                // A PLY with faces is a mesh; one without (e.g. an Open3D scan) is a point cloud.
+                new THREE.PLYLoader().load(cfg.model, function(geometry) {
+                    if (geometry.index) {
+                        addMesh(geometry);
+                    } else {
+                        addPoints(geometry);
+                    }
+                }, undefined, fail);
+            } else if (cfg.format === 'obj') {
+                new THREE.OBJLoader().load(cfg.model, addObject, undefined, fail);
+            } else {
+                fail();
+                return;
+            }
+        } catch (e) {
+            fail();
+            return;
+        }
+        var animate = function() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        };
+        animate();
+        window.addEventListener('resize', function() {
+            var w = region.clientWidth || width;
+            var h = Math.round(w * 9 / 16);
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        });
+    }
 });
 ");
 }

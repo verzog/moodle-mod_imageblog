@@ -4,6 +4,20 @@ All notable changes to the Image blog activity (`mod_imageblog`) are documented
 here. The format is based on [Keep a Changelog](https://keepachangelog.com/), and
 the project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [0.10.0] - 2026-10-08
+
+### Added
+- **3D models.** A case can include an optional 3D model (glTF/GLB, STL, PLY or
+  OBJ, up to 50 MB), rendered as an interactive viewer on the case page with the
+  bundled three.js library (loaded lazily by format, with a graceful fallback).
+  Readers drag to rotate and scroll to zoom; the model is auto-centred and
+  framed. STL/PLY render as geometry with a neutral material, and OBJ renders as
+  geometry only (no companion `.mtl`). Adds the *Include a 3D model* toggle and
+  uploader, a `model` module-context file area served through
+  `imageblog_pluginfile`, format detection, backup/restore of the model, viewer
+  styles, `thirdparty/three` with `thirdpartylibs.xml`, and PHPUnit tests. No
+  schema change (the model lives in file storage).
+
 ## [0.9.0] - 2026-10-08
 
 ### Added
@@ -121,6 +135,7 @@ Initial walking skeleton.
   difficulty multipliers and the best-answer bonus — see
   `moodle-local_imageblog/doc/mod_imageblog-grading-plan.md`.
 
+[0.10.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.10.0
 [0.9.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.9.0
 [0.8.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.8.0
 [0.7.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.7.0

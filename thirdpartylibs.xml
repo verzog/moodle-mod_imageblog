@@ -8,4 +8,12 @@
         <licenseversion></licenseversion>
         <repository>https://github.com/mpetroff/pannellum</repository>
     </library>
+    <library>
+        <location>thirdparty/three</location>
+        <name>three.js</name>
+        <version>0.147.0</version>
+        <license>MIT</license>
+        <licenseversion></licenseversion>
+        <repository>https://github.com/mrdoob/three.js</repository>
+    </library>
 </libraries>

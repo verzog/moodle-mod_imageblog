@@ -71,6 +71,7 @@ function imageblog_add_instance($data, $mform = null) {
         core_tag_tag::set_item_tags('mod_imageblog', 'imageblog', $data->id, $context, $data->casetags);
     }
     imageblog_save_panorama($data, $context);
+    imageblog_save_model($data, $context);
 
     return $data->id;
 }
@@ -109,6 +110,7 @@ function imageblog_update_instance($data, $mform = null) {
         core_tag_tag::set_item_tags('mod_imageblog', 'imageblog', $data->id, $context, $data->casetags);
     }
     imageblog_save_panorama($data, $context);
+    imageblog_save_model($data, $context);
 
     return true;
 }
@@ -304,9 +306,10 @@ function imageblog_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
     require_course_login($course, true, $cm);
     require_capability('mod/imageblog:view', $context);
 
-    // Both served areas hold a single file at itemid 0 (the intro and the
-    // optional 360 degree panorama), so their URLs carry no itemid segment.
-    if ($filearea !== 'intro' && $filearea !== 'panorama') {
+    // These areas each hold a single file at itemid 0 (the intro, the optional
+    // 360 degree panorama and the optional 3D model), so their URLs carry no
+    // itemid segment.
+    if ($filearea !== 'intro' && $filearea !== 'panorama' && $filearea !== 'model') {
         return false;
     }
 
@@ -389,6 +392,111 @@ function imageblog_save_panorama($data, $context) {
         'panorama',
         0,
         imageblog_panorama_filemanager_options()
+    );
+}
+
+/**
+ * The 3D model file extensions the viewer can open.
+ *
+ * @return string[] accepted extensions, each with a leading dot
+ */
+function imageblog_model_extensions() {
+    return ['.glb', '.gltf', '.stl', '.ply', '.obj'];
+}
+
+/**
+ * Filemanager/draft-area options for the 3D model file. The limit is generous
+ * because meshes and scanned point clouds are often large.
+ *
+ * @return array the options array for file_prepare_draft_area/file_save_draft_area_files
+ */
+function imageblog_model_filemanager_options() {
+    return [
+        'maxbytes' => 50 * 1024 * 1024,
+        'accepted_types' => imageblog_model_extensions(),
+        'maxfiles' => 1,
+        'subdirs' => 0,
+    ];
+}
+
+/**
+ * URL of the instance's 3D model file, or null if none is set.
+ *
+ * The file lives at itemid 0 in the module context, so the URL is built
+ * without an itemid segment (as for the activity intro).
+ *
+ * @param context $context the module context
+ * @return moodle_url|null the pluginfile URL, or null when no model exists
+ */
+function imageblog_get_model_url($context) {
+    $fs = get_file_storage();
+    $files = $fs->get_area_files($context->id, 'mod_imageblog', 'model', 0, 'itemid, filepath, filename', false);
+    if (!$files) {
+        return null;
+    }
+    $file = reset($files);
+    return moodle_url::make_pluginfile_url(
+        $file->get_contextid(),
+        $file->get_component(),
+        $file->get_filearea(),
+        null,
+        $file->get_filepath(),
+        $file->get_filename()
+    );
+}
+
+/**
+ * The viewer format key for a model file name, from its extension.
+ *
+ * glTF and GLB share the same loader, so both map to 'gltf'; an unknown
+ * extension returns the empty string.
+ *
+ * @param string $filename the stored model file name
+ * @return string one of stl, ply, obj, gltf, or '' when unrecognised
+ */
+function imageblog_model_format($filename) {
+    $ext = core_text::strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    switch ($ext) {
+        case 'glb':
+        case 'gltf':
+            return 'gltf';
+        case 'stl':
+            return 'stl';
+        case 'ply':
+            return 'ply';
+        case 'obj':
+            return 'obj';
+        default:
+            return '';
+    }
+}
+
+/**
+ * Persist the submitted 3D model file for an instance.
+ *
+ * When the model toggle is off the area is cleared, so unchecking it removes a
+ * previously uploaded model; otherwise the draft file is saved into the module
+ * context at itemid 0.
+ *
+ * @param stdClass $data submitted form data (with model_file draft id and coursemodule set)
+ * @param context $context the module context
+ * @return void
+ */
+function imageblog_save_model($data, $context) {
+    if (!isset($data->model_file)) {
+        return;
+    }
+    if (empty($data->hasmodel)) {
+        get_file_storage()->delete_area_files($context->id, 'mod_imageblog', 'model', 0);
+        return;
+    }
+    file_save_draft_area_files(
+        $data->model_file,
+        $context->id,
+        'mod_imageblog',
+        'model',
+        0,
+        imageblog_model_filemanager_options()
     );
 }
 
