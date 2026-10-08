@@ -512,7 +512,7 @@ function imageblog_notify_outcome_revealed($imageblog, $cm, $context, $userfrom)
  * @return void
  */
 function imageblog_notify_question_posted($imageblog, $cm, $context, $userfrom) {
-    // onlyactive = true: skip suspended or out-of-date enrolments, which cannot open the activity.
+    // The onlyactive flag skips suspended or out-of-date enrolments, which cannot open the activity.
     $recipients = get_enrolled_users($context, 'mod/imageblog:answerquestion', 0, 'u.*', null, 0, 0, true);
     if (!$recipients) {
         return;
