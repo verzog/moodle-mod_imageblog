@@ -329,8 +329,14 @@ function imageblog_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
  * @param int $page the zero-based page number
  * @return \core_tag\output\tagindex the rendered tag index
  */
-function mod_imageblog_get_tagged_cases($tag, $exclusivemode = false, $fromcontextid = 0, $contextid = 0,
-        $recursivecontext = true, $page = 0) {
+function mod_imageblog_get_tagged_cases(
+    $tag,
+    $exclusivemode = false,
+    $fromcontextid = 0,
+    $contextid = 0,
+    $recursivecontext = true,
+    $page = 0
+) {
     global $OUTPUT;
 
     $perpage = $exclusivemode ? 20 : 5;
@@ -410,6 +416,16 @@ function mod_imageblog_get_tagged_cases($tag, $exclusivemode = false, $fromconte
 
     $content = $OUTPUT->render_from_template('core_tag/tagfeed', $tagfeed->export_for_template($OUTPUT));
 
-    return new core_tag\output\tagindex($tag, 'mod_imageblog', 'imageblog', $content,
-        $exclusivemode, $fromcontextid, $contextid, $recursivecontext, $page, $totalpages);
+    return new core_tag\output\tagindex(
+        $tag,
+        'mod_imageblog',
+        'imageblog',
+        $content,
+        $exclusivemode,
+        $fromcontextid,
+        $contextid,
+        $recursivecontext,
+        $page,
+        $totalpages
+    );
 }
