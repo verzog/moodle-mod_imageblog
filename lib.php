@@ -429,3 +429,122 @@ function mod_imageblog_get_tagged_cases(
         $totalpages
     );
 }
+
+/**
+ * Send one image blog notification.
+ *
+ * @param string $name the message provider name
+ * @param stdClass $userfrom the sending user
+ * @param stdClass $userto the receiving user
+ * @param stdClass $a the subject/body placeholder data (name, course)
+ * @param stdClass $imageblog the instance record
+ * @param stdClass $cm the course module record
+ * @param moodle_url $url the activity view url
+ * @return mixed the message id, or false on failure
+ */
+function imageblog_send_notification($name, $userfrom, $userto, $a, $imageblog, $cm, moodle_url $url) {
+    $message = new \core\message\message();
+    $message->component = 'mod_imageblog';
+    $message->name = $name;
+    $message->userfrom = $userfrom;
+    $message->userto = $userto;
+    $message->subject = get_string('messagesubject_' . $name, 'mod_imageblog', $a);
+    $message->fullmessage = get_string('messagebody_' . $name, 'mod_imageblog', $a);
+    $message->fullmessageformat = FORMAT_PLAIN;
+    $message->fullmessagehtml = html_writer::tag('p', get_string('messagebody_' . $name, 'mod_imageblog', $a));
+    $message->smallmessage = get_string('messagebody_' . $name, 'mod_imageblog', $a);
+    $message->notification = 1;
+    $message->courseid = $cm->course;
+    $message->contexturl = $url->out(false);
+    $message->contexturlname = format_string($imageblog->name);
+
+    return message_send($message);
+}
+
+/**
+ * Notify everyone who submitted a diagnosis that the case outcome has been revealed.
+ *
+ * @param stdClass $imageblog the instance record
+ * @param stdClass $cm the course module record
+ * @param context $context the module context
+ * @param stdClass $userfrom the teacher revealing the outcome
+ * @return void
+ */
+function imageblog_notify_outcome_revealed($imageblog, $cm, $context, $userfrom) {
+    global $DB;
+
+    $recipients = $DB->get_records('imageblog_diagnoses', ['imageblogid' => $imageblog->id], '', 'id, userid');
+    if (!$recipients) {
+        return;
+    }
+
+    $a = imageblog_notification_data($imageblog, $cm);
+    $url = new moodle_url('/mod/imageblog/view.php', ['id' => $cm->id]);
+    foreach ($recipients as $recipient) {
+        $userto = \core_user::get_user($recipient->userid);
+        if (!$userto || $userto->deleted) {
+            continue;
+        }
+        imageblog_send_notification('outcomerevealed', $userfrom, $userto, $a, $imageblog, $cm, $url);
+    }
+}
+
+/**
+ * Notify teachers who can answer that a reader posted a question.
+ *
+ * @param stdClass $imageblog the instance record
+ * @param stdClass $cm the course module record
+ * @param context $context the module context
+ * @param stdClass $userfrom the reader who asked
+ * @return void
+ */
+function imageblog_notify_question_posted($imageblog, $cm, $context, $userfrom) {
+    $recipients = get_enrolled_users($context, 'mod/imageblog:answerquestion');
+    if (!$recipients) {
+        return;
+    }
+
+    $a = imageblog_notification_data($imageblog, $cm);
+    $url = new moodle_url('/mod/imageblog/view.php', ['id' => $cm->id]);
+    foreach ($recipients as $userto) {
+        if ((int) $userto->id === (int) $userfrom->id) {
+            continue;
+        }
+        imageblog_send_notification('questionposted', $userfrom, $userto, $a, $imageblog, $cm, $url);
+    }
+}
+
+/**
+ * Notify the asker that their question has been answered.
+ *
+ * @param stdClass $imageblog the instance record
+ * @param stdClass $cm the course module record
+ * @param stdClass $question the question record
+ * @param stdClass $userfrom the teacher who answered
+ * @return void
+ */
+function imageblog_notify_question_answered($imageblog, $cm, $question, $userfrom) {
+    $userto = \core_user::get_user($question->userid);
+    if (!$userto || $userto->deleted) {
+        return;
+    }
+
+    $a = imageblog_notification_data($imageblog, $cm);
+    $url = new moodle_url('/mod/imageblog/view.php', ['id' => $cm->id]);
+    imageblog_send_notification('questionanswered', $userfrom, $userto, $a, $imageblog, $cm, $url);
+}
+
+/**
+ * Build the placeholder data shared by the notification strings.
+ *
+ * @param stdClass $imageblog the instance record
+ * @param stdClass $cm the course module record
+ * @return stdClass an object with name and course
+ */
+function imageblog_notification_data($imageblog, $cm) {
+    $course = get_course($cm->course);
+    return (object) [
+        'name' => format_string($imageblog->name),
+        'course' => format_string($course->fullname),
+    ];
+}

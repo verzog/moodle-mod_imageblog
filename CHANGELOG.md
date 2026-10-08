@@ -4,6 +4,16 @@ All notable changes to the Image blog activity (`mod_imageblog`) are documented
 here. The format is based on [Keep a Changelog](https://keepachangelog.com/), and
 the project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [0.8.0] - 2026-10-08
+
+### Added
+- **Notifications** via the Moodle Message API. Three message providers:
+  *outcome revealed* (to each reader who submitted, when the teacher reveals
+  the case), *new question posted* (to teachers who can answer, when a reader
+  asks), and *question answered* (to the asker, when a teacher answers). Each
+  carries a link back to the activity and respects the recipient's messaging
+  preferences. Adds `db/messages.php`, the sending helpers, and a PHPUnit test.
+
 ## [0.7.0] - 2026-10-08
 
 ### Added
@@ -99,6 +109,7 @@ Initial walking skeleton.
   difficulty multipliers and the best-answer bonus — see
   `moodle-local_imageblog/doc/mod_imageblog-grading-plan.md`.
 
+[0.8.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.8.0
 [0.7.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.7.0
 [0.6.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.6.0
 [0.5.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.5.0

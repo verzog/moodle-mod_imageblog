@@ -56,6 +56,7 @@ if ($canreveal && empty($imageblog->revealed) && optional_param('reveal', 0, PAR
     $DB->set_field('imageblog', 'revealed', 1, ['id' => $imageblog->id]);
     $imageblog->revealed = 1;
     imageblog_update_grades($imageblog);
+    imageblog_notify_outcome_revealed($imageblog, $cm, $context, $USER);
     redirect($pageurl, get_string('outcomerevealed', 'mod_imageblog'), null, \core\output\notification::NOTIFY_SUCCESS);
 }
 
@@ -143,6 +144,7 @@ if ($canask) {
             'timemodified' => $now,
             'timeanswered' => 0,
         ]);
+        imageblog_notify_question_posted($imageblog, $cm, $context, $USER);
         redirect($pageurl, get_string('questionasked', 'mod_imageblog'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
 }
@@ -173,6 +175,7 @@ if ($cananswer && $answerquestionid) {
         $answerquestion->timeanswered = $now;
         $answerquestion->timemodified = $now;
         $DB->update_record('imageblog_questions', $answerquestion);
+        imageblog_notify_question_answered($imageblog, $cm, $answerquestion, $USER);
         redirect($pageurl, get_string('answersaved', 'mod_imageblog'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
 }
