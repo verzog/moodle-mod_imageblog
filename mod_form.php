@@ -103,16 +103,18 @@ class mod_imageblog_mod_form extends moodleform_mod {
      */
     public function add_completion_rules() {
         $mform = $this->_form;
+        $suffix = $this->get_suffix();
+        $completionsubmitel = 'completionsubmit' . $suffix;
 
         $mform->addElement(
             'checkbox',
-            'completionsubmit',
+            $completionsubmitel,
             '',
             get_string('completionsubmit', 'mod_imageblog')
         );
-        $mform->addHelpButton('completionsubmit', 'completionsubmit', 'mod_imageblog');
+        $mform->addHelpButton($completionsubmitel, 'completionsubmit', 'mod_imageblog');
 
-        return ['completionsubmit'];
+        return [$completionsubmitel];
     }
 
     /**
@@ -122,7 +124,8 @@ class mod_imageblog_mod_form extends moodleform_mod {
      * @return bool true if a custom rule is selected
      */
     public function completion_rule_enabled($data) {
-        return !empty($data['completionsubmit']);
+        $suffix = $this->get_suffix();
+        return !empty($data['completionsubmit' . $suffix]);
     }
 
     /**
