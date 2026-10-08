@@ -25,6 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/course/moodleform_mod.php');
+require_once($CFG->dirroot . '/mod/imageblog/lib.php');
 
 /**
  * Instance settings form for the image blog activity.
@@ -64,6 +65,21 @@ class mod_imageblog_mod_form extends moodleform_mod {
 
         $mform->addElement('textarea', 'revealtext', get_string('revealtext', 'mod_imageblog'), ['rows' => 6, 'cols' => 60]);
         $mform->setType('revealtext', PARAM_TEXT);
+
+        // Optional 360 degree panorama image, shown as an interactive viewer on the case.
+        $mform->addElement('advcheckbox', 'haspanorama', get_string('haspanorama', 'mod_imageblog'));
+        $mform->setType('haspanorama', PARAM_BOOL);
+        $mform->addHelpButton('haspanorama', 'haspanorama', 'mod_imageblog');
+
+        $mform->addElement(
+            'filemanager',
+            'panorama_image',
+            get_string('panorama', 'mod_imageblog'),
+            null,
+            imageblog_panorama_filemanager_options()
+        );
+        $mform->addHelpButton('panorama_image', 'panorama', 'mod_imageblog');
+        $mform->hideIf('panorama_image', 'haspanorama', 'notchecked');
 
         $levels = [1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5];
         $mform->addElement('select', 'casedifficulty', get_string('casedifficulty', 'mod_imageblog'), $levels);
@@ -152,6 +168,28 @@ class mod_imageblog_mod_form extends moodleform_mod {
                 $this->current->id
             );
         }
+
+        // Prime the panorama filemanager from the stored file area and reflect
+        // whether an image is present in the toggle that gates the uploader.
+        $draftitemid = file_get_submitted_draft_itemid('panorama_image');
+        file_prepare_draft_area(
+            $draftitemid,
+            $this->context->id,
+            'mod_imageblog',
+            'panorama',
+            0,
+            imageblog_panorama_filemanager_options()
+        );
+        $defaultvalues['panorama_image'] = $draftitemid;
+
+        $haspanorama = 0;
+        if (!empty($this->current->id)) {
+            $fs = get_file_storage();
+            if ($fs->get_area_files($this->context->id, 'mod_imageblog', 'panorama', 0, 'id', false)) {
+                $haspanorama = 1;
+            }
+        }
+        $defaultvalues['haspanorama'] = $haspanorama;
     }
 
     /**

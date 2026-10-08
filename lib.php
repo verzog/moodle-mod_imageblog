@@ -66,10 +66,11 @@ function imageblog_add_instance($data, $mform = null) {
 
     imageblog_grade_item_update($data);
 
+    $context = context_module::instance($data->coursemodule);
     if (isset($data->casetags)) {
-        $context = context_module::instance($data->coursemodule);
         core_tag_tag::set_item_tags('mod_imageblog', 'imageblog', $data->id, $context, $data->casetags);
     }
+    imageblog_save_panorama($data, $context);
 
     return $data->id;
 }
@@ -103,10 +104,11 @@ function imageblog_update_instance($data, $mform = null) {
     imageblog_grade_item_update($imageblog);
     imageblog_update_grades($imageblog);
 
+    $context = context_module::instance($data->coursemodule);
     if (isset($data->casetags)) {
-        $context = context_module::instance($data->coursemodule);
         core_tag_tag::set_item_tags('mod_imageblog', 'imageblog', $data->id, $context, $data->casetags);
     }
+    imageblog_save_panorama($data, $context);
 
     return true;
 }
@@ -289,7 +291,7 @@ function imageblog_update_grades($imageblog, $userid = 0, $nullifnone = true) {
  * @param stdClass $cm the course module object
  * @param context $context the module context
  * @param string $filearea the name of the file area
- * @param array $args the remaining path arguments (itemid is implicitly 0 for intro)
+ * @param array $args the remaining path arguments (itemid is implicitly 0 for intro and panorama)
  * @param bool $forcedownload whether to force download
  * @param array $options additional options affecting file serving
  * @return bool false if the file was not found; otherwise the file is sent and execution stops
@@ -302,7 +304,9 @@ function imageblog_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
     require_course_login($course, true, $cm);
     require_capability('mod/imageblog:view', $context);
 
-    if ($filearea !== 'intro') {
+    // Both served areas hold a single file at itemid 0 (the intro and the
+    // optional 360 degree panorama), so their URLs carry no itemid segment.
+    if ($filearea !== 'intro' && $filearea !== 'panorama') {
         return false;
     }
 
@@ -310,12 +314,82 @@ function imageblog_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
     $filepath = $args ? '/' . implode('/', $args) . '/' : '/';
 
     $fs = get_file_storage();
-    $file = $fs->get_file($context->id, 'mod_imageblog', 'intro', 0, $filepath, $filename);
+    $file = $fs->get_file($context->id, 'mod_imageblog', $filearea, 0, $filepath, $filename);
     if (!$file || $file->is_directory()) {
         return false;
     }
 
     send_stored_file($file, null, 0, $forcedownload, $options);
+}
+
+/**
+ * Filemanager/draft-area options for the 360 degree panorama image. The limit
+ * is generous because equirectangular sources are typically high resolution.
+ *
+ * @return array the options array for file_prepare_draft_area/file_save_draft_area_files
+ */
+function imageblog_panorama_filemanager_options() {
+    return [
+        'maxbytes' => 20 * 1024 * 1024,
+        'accepted_types' => ['.jpg', '.jpeg', '.png'],
+        'maxfiles' => 1,
+        'subdirs' => 0,
+    ];
+}
+
+/**
+ * URL of the instance's 360 degree panorama image, or null if none is set.
+ *
+ * The file lives at itemid 0 in the module context, so the URL is built
+ * without an itemid segment (as for the activity intro).
+ *
+ * @param context $context the module context
+ * @return moodle_url|null the pluginfile URL, or null when no panorama exists
+ */
+function imageblog_get_panorama_url($context) {
+    $fs = get_file_storage();
+    $files = $fs->get_area_files($context->id, 'mod_imageblog', 'panorama', 0, 'itemid, filepath, filename', false);
+    if (!$files) {
+        return null;
+    }
+    $file = reset($files);
+    return moodle_url::make_pluginfile_url(
+        $file->get_contextid(),
+        $file->get_component(),
+        $file->get_filearea(),
+        null,
+        $file->get_filepath(),
+        $file->get_filename()
+    );
+}
+
+/**
+ * Persist the submitted panorama image for an instance.
+ *
+ * When the panorama toggle is off the area is cleared, so unchecking it removes
+ * a previously uploaded image; otherwise the draft files are saved into the
+ * module context at itemid 0.
+ *
+ * @param stdClass $data submitted form data (with panorama_image draft id and coursemodule set)
+ * @param context $context the module context
+ * @return void
+ */
+function imageblog_save_panorama($data, $context) {
+    if (!isset($data->panorama_image)) {
+        return;
+    }
+    if (empty($data->haspanorama)) {
+        get_file_storage()->delete_area_files($context->id, 'mod_imageblog', 'panorama', 0);
+        return;
+    }
+    file_save_draft_area_files(
+        $data->panorama_image,
+        $context->id,
+        'mod_imageblog',
+        'panorama',
+        0,
+        imageblog_panorama_filemanager_options()
+    );
 }
 
 /**

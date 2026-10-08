@@ -10,12 +10,13 @@ local plugin is the public, site-wide showcase, while this activity brings the
 clinical-case flow into a course where it can be graded and tracked. The two
 share a context-neutral scoring engine.
 
-> **Status: early alpha (v0.8.0).** It installs, adds to a course, shows a
+> **Status: early alpha (v0.9.0).** It installs, adds to a course, shows a
 > case, accepts a diagnosis, writes a CPD-style grade on reveal (with a
 > teacher-selected best-answer bonus), supports reader questions with teacher
 > answers, tags cases for browsing, tracks activity completion, sends
-> notifications on key events, and backs up and restores cleanly. 360°
-> panoramas are not here yet — see the design plan referenced below.
+> notifications on key events, shows an optional interactive 360° panorama on
+> the case, and backs up and restores cleanly. This completes the phased plan
+> referenced below.
 
 ## Requirements
 
@@ -93,10 +94,22 @@ diagnosis is notified; when a reader posts a question, teachers who can answer
 are notified; and when a teacher answers, the asker is notified. Each message
 links back to the case and respects the recipient's messaging preferences.
 
+## 360° panoramas
+
+A case can carry an optional **360° panorama**: an equirectangular (2:1) image
+rendered as an interactive viewer on the case page, using the bundled
+[Pannellum](https://github.com/mpetroff/pannellum) library. Enable it on the
+activity form with *Include a 360° panorama* and upload the image (JPEG or PNG,
+up to 20 MB); readers can then drag to look around and scroll or pinch to zoom.
+The viewer loads lazily and degrades to a short message if it cannot start, so
+the rest of the case is unaffected. The image backs up and restores with the
+activity.
+
 ## Roadmap
 
 The design and phased plan live in the local plugin repository at
-`doc/mod_imageblog-grading-plan.md`. Next milestone: 360° panoramas.
+`doc/mod_imageblog-grading-plan.md`. With 360° panoramas in place, the phased
+build-out set out in that plan is complete.
 
 ## Licence
 
