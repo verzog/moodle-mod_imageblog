@@ -314,9 +314,8 @@ if ($modelurl) {
     // query-style pluginfile URL defeats the loader's relative resolution).
     $companions = [];
     $mainprefix = ltrim($modelmainfile->get_filepath(), '/');
-    foreach (get_file_storage()->get_area_files(
-        $context->id, 'mod_imageblog', 'model', 0, 'filepath, filename', false
-    ) as $cfile) {
+    $modelfiles = get_file_storage()->get_area_files($context->id, 'mod_imageblog', 'model', 0, 'filepath, filename', false);
+    foreach ($modelfiles as $cfile) {
         if ($cfile->get_pathnamehash() === $modelmainfile->get_pathnamehash()) {
             continue;
         }
