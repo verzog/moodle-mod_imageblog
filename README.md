@@ -47,8 +47,14 @@ shared clinical-case scoring engine (`\local_imageblog\local\scoring`). Install
 ## Grading
 
 Grading uses the standard Moodle Grade API. Each activity instance owns one
-point-based grade item whose maximum is set on the settings form. The score is
-computed through the shared engine and mapped by
+point-based grade item whose maximum is set on the settings form. Each instance
+chooses its grading method on the settings form (**Grading method**): the
+built-in **automatic scoring** described below, or an **advanced grading method**
+such as a **rubric** or marking guide.
+
+### Automatic scoring
+
+The score is computed through the shared engine and mapped by
 `\mod_imageblog\local\grader::grade_fraction()`:
 
 - A diagnosis the teacher marks as **best** earns the **best-answer factor**,
@@ -65,6 +71,18 @@ The difficulty level, difficulty scale, and the three factors
 
 After revealing the outcome, a teacher sees every submitted diagnosis and can
 mark one as the best (or clear the selection); grades update automatically.
+
+### Rubric / advanced grading
+
+When the activity's grading method is set to a rubric (or any other advanced
+grading method), the automatic engine, the best-answer bonus and the
+reveal-time scoring no longer apply. Instead the teacher defines the rubric
+under the activity's **Advanced grading** settings, then marks each submitted
+diagnosis from the activity page (**Grade submissions**). Each mark is scaled to
+the activity's maximum grade and written to the gradebook as soon as it is
+saved — independent of the reveal — and the student sees their grade on the
+activity once it is awarded. Rubric fills are included in activity backup,
+restore and the privacy (export/delete) API alongside the diagnoses.
 
 ## Questions & answers
 

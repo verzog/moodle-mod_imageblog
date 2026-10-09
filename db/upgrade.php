@@ -114,5 +114,17 @@ function xmldb_imageblog_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026100800, 'imageblog');
     }
 
+    if ($oldversion < 2026100901) {
+        $table = new xmldb_table('imageblog_diagnoses');
+
+        $field = new xmldb_field('rubricgrade');
+        $field->set_attributes(XMLDB_TYPE_NUMBER, '10, 5', null, null, null, null, 'timemodified');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_mod_savepoint(true, 2026100901, 'imageblog');
+    }
+
     return true;
 }

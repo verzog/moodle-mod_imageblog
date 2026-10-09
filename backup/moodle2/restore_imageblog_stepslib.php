@@ -86,6 +86,10 @@ class restore_imageblog_activity_structure_step extends restore_activity_structu
 
         $newid = $DB->insert_record('imageblog_diagnoses', $data);
         $this->set_mapping('imageblog_diagnosis', $oldid, $newid);
+
+        // The diagnosis id is the grading item id for the "submissions" area, so
+        // map it for the automatic advanced-grading (e.g. rubric) restore.
+        $this->set_mapping(\restore_gradingform_plugin::itemid_mapping('submissions'), $oldid, $newid);
     }
 
     /**

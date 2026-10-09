@@ -36,6 +36,8 @@ function imageblog_supports($feature) {
             return true;
         case FEATURE_GRADE_HAS_GRADE:
             return true;
+        case FEATURE_ADVANCED_GRADING:
+            return true;
         case FEATURE_COMPLETION_TRACKS_VIEWS:
             return true;
         case FEATURE_COMPLETION_HAS_RULES:
@@ -215,10 +217,41 @@ function imageblog_grade_item_delete($imageblog) {
 }
 
 /**
+ * The advanced grading controller active on an instance's "submissions" area,
+ * or null when the activity is scored by the built-in engine.
+ *
+ * A controller is returned as soon as the teacher selects an advanced grading
+ * method (e.g. a rubric), even before the rubric itself is defined; callers that
+ * render the marking form must still check the controller's is_form_available().
+ *
+ * @param stdClass $imageblog the instance record (needs id and course)
+ * @return \gradingform_controller|null the active controller, or null for engine scoring
+ */
+function imageblog_grading_active($imageblog) {
+    global $CFG;
+    require_once($CFG->dirroot . '/grade/grading/lib.php');
+
+    $courseid = $imageblog->course ?? 0;
+    $cm = get_coursemodule_from_instance('imageblog', $imageblog->id, $courseid, false, IGNORE_MISSING);
+    if (!$cm) {
+        return null;
+    }
+    $context = context_module::instance($cm->id);
+    $gradingmanager = get_grading_manager($context, 'mod_imageblog', 'submissions');
+    if ($method = $gradingmanager->get_active_method()) {
+        return $gradingmanager->get_controller($method);
+    }
+    return null;
+}
+
+/**
  * Compute the grades a set of users have earned on an image blog instance.
  *
- * Grades only exist once the case outcome has been revealed. The grade is the
- * scoring engine's fraction (0..1) scaled by the configured maximum.
+ * When an advanced grading method (e.g. a rubric) is active, grades are the
+ * points the teacher awarded per submission, available as soon as they are
+ * entered. Otherwise grades come from the built-in scoring engine and only
+ * exist once the case outcome has been revealed; the engine grade is its
+ * fraction (0..1) scaled by the configured maximum.
  *
  * @param stdClass $imageblog the instance record
  * @param int $userid a single user to compute for, or 0 for everyone
@@ -227,13 +260,34 @@ function imageblog_grade_item_delete($imageblog) {
 function imageblog_get_user_grades($imageblog, $userid = 0) {
     global $DB;
 
-    if (empty($imageblog->revealed) || empty($imageblog->grade) || $imageblog->grade <= 0) {
+    if (empty($imageblog->grade) || $imageblog->grade <= 0) {
         return [];
     }
 
     $params = ['imageblogid' => $imageblog->id];
     if ($userid) {
         $params['userid'] = $userid;
+    }
+
+    // Advanced grading: return the stored per-submission points, independent of
+    // the reveal, skipping submissions the teacher has not yet marked.
+    if (imageblog_grading_active($imageblog)) {
+        $grades = [];
+        foreach ($DB->get_records('imageblog_diagnoses', $params) as $record) {
+            if ($record->rubricgrade === null) {
+                continue;
+            }
+            $grades[$record->userid] = (object) [
+                'userid' => $record->userid,
+                'rawgrade' => (float) $record->rubricgrade,
+            ];
+        }
+        return $grades;
+    }
+
+    // Engine scoring: grades only exist once the outcome has been revealed.
+    if (empty($imageblog->revealed)) {
+        return [];
     }
 
     $grades = [];
