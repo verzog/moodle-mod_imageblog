@@ -81,6 +81,21 @@ class mod_imageblog_mod_form extends moodleform_mod {
         $mform->addHelpButton('panorama_image', 'panorama', 'mod_imageblog');
         $mform->hideIf('panorama_image', 'haspanorama', 'notchecked');
 
+        // Optional 3D model, shown as an interactive viewer on the case.
+        $mform->addElement('advcheckbox', 'hasmodel', get_string('hasmodel', 'mod_imageblog'));
+        $mform->setType('hasmodel', PARAM_BOOL);
+        $mform->addHelpButton('hasmodel', 'hasmodel', 'mod_imageblog');
+
+        $mform->addElement(
+            'filemanager',
+            'model_file',
+            get_string('model', 'mod_imageblog'),
+            null,
+            imageblog_model_filemanager_options()
+        );
+        $mform->addHelpButton('model_file', 'model', 'mod_imageblog');
+        $mform->hideIf('model_file', 'hasmodel', 'notchecked');
+
         $levels = [1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5];
         $mform->addElement('select', 'casedifficulty', get_string('casedifficulty', 'mod_imageblog'), $levels);
         $mform->setType('casedifficulty', PARAM_INT);
@@ -190,6 +205,28 @@ class mod_imageblog_mod_form extends moodleform_mod {
             }
         }
         $defaultvalues['haspanorama'] = $haspanorama;
+
+        // Prime the 3D model filemanager from the stored file area and reflect
+        // whether a model is present in the toggle that gates the uploader.
+        $modeldraftid = file_get_submitted_draft_itemid('model_file');
+        file_prepare_draft_area(
+            $modeldraftid,
+            $this->context->id,
+            'mod_imageblog',
+            'model',
+            0,
+            imageblog_model_filemanager_options()
+        );
+        $defaultvalues['model_file'] = $modeldraftid;
+
+        $hasmodel = 0;
+        if (!empty($this->current->id)) {
+            $fs = get_file_storage();
+            if ($fs->get_area_files($this->context->id, 'mod_imageblog', 'model', 0, 'id', false)) {
+                $hasmodel = 1;
+            }
+        }
+        $defaultvalues['hasmodel'] = $hasmodel;
     }
 
     /**

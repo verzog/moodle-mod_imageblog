@@ -220,6 +220,45 @@ final class backup_restore_test extends \advanced_testcase {
     }
 
     /**
+     * A case's 3D model file is backed up and restored, so the viewer still has
+     * its source after course copy, import or restore.
+     */
+    public function test_backup_restore_carries_model(): void {
+        global $DB, $USER;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $course = $this->getDataGenerator()->create_course();
+
+        /** @var \mod_imageblog_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
+        $imageblog = $generator->create_instance(['course' => $course->id]);
+        $context = \context_module::instance($imageblog->cmid);
+
+        get_file_storage()->create_file_from_string([
+            'contextid' => $context->id,
+            'component' => 'mod_imageblog',
+            'filearea' => 'model',
+            'itemid' => 0,
+            'filepath' => '/',
+            'filename' => 'heart.glb',
+        ], 'fake-model-bytes');
+
+        $backupid = $this->backup_activity($imageblog->cmid, $USER->id);
+        $targetcourse = $this->getDataGenerator()->create_course();
+        $this->restore_into_course($backupid, $targetcourse->id, $USER->id);
+
+        $restored = $DB->get_record('imageblog', ['course' => $targetcourse->id], '*', MUST_EXIST);
+        $restoredcm = get_coursemodule_from_instance('imageblog', $restored->id, $targetcourse->id, false, MUST_EXIST);
+        $restoredcontext = \context_module::instance($restoredcm->id);
+
+        $url = imageblog_get_model_url($restoredcontext);
+        $this->assertInstanceOf(\moodle_url::class, $url);
+        $this->assertStringContainsString('heart.glb', $url->out(false));
+    }
+
+    /**
      * Back up a single activity with user data included.
      *
      * MODE_GENERAL zips the backup and removes its working directory, so the

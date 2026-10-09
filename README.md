@@ -10,13 +10,13 @@ local plugin is the public, site-wide showcase, while this activity brings the
 clinical-case flow into a course where it can be graded and tracked. The two
 share a context-neutral scoring engine.
 
-> **Status: early alpha (v0.9.0).** It installs, adds to a course, shows a
+> **Status: early alpha (v0.10.0).** It installs, adds to a course, shows a
 > case, accepts a diagnosis, writes a CPD-style grade on reveal (with a
 > teacher-selected best-answer bonus), supports reader questions with teacher
 > answers, tags cases for browsing, tracks activity completion, sends
-> notifications on key events, shows an optional interactive 360° panorama on
-> the case, and backs up and restores cleanly. This completes the phased plan
-> referenced below.
+> notifications on key events, shows an optional interactive 360° panorama and
+> an optional interactive 3D model on the case, and backs up and restores
+> cleanly. This builds on the phased plan referenced below.
 
 ## Requirements
 
@@ -105,11 +105,30 @@ The viewer loads lazily and degrades to a short message if it cannot start, so
 the rest of the case is unaffected. The image backs up and restores with the
 activity.
 
+## 3D models
+
+A case can also carry an optional **3D model**, rendered as an interactive
+viewer on the case page with the bundled [three.js](https://github.com/mrdoob/three.js)
+library. Enable it on the activity form with *Include a 3D model* and upload a
+file in one of these formats (up to 50 MB):
+
+| Format | Extensions | Notes |
+| --- | --- | --- |
+| glTF / GLB | `.gltf`, `.glb` | Must be self-contained: a binary `.glb`, or a `.gltf` with embedded buffers. A `.gltf` that references external `.bin`/texture files will not load, since companion files are not uploaded. Materials and textures render. |
+| STL | `.stl` | Geometry only (ASCII or binary); a neutral material is applied. |
+| PLY | `.ply` | Geometry only; a neutral material is applied. |
+| OBJ | `.obj` | Geometry only — the companion `.mtl`/textures are not loaded in this version. |
+
+Readers drag to rotate, and scroll or pinch to zoom; the model is auto-centred
+and framed. The viewer and the chosen format's loader load lazily and degrade
+to a short message if they cannot start. The model file backs up and restores
+with the activity.
+
 ## Roadmap
 
 The design and phased plan live in the local plugin repository at
-`doc/mod_imageblog-grading-plan.md`. With 360° panoramas in place, the phased
-build-out set out in that plan is complete.
+`doc/mod_imageblog-grading-plan.md`. The phased build-out set out in that plan
+is complete; 3D models extend it with interactive volumetric cases.
 
 ## Licence
 
