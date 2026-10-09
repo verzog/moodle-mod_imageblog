@@ -295,7 +295,7 @@ if ($modelurl) {
         'aria-label' => get_string('model', 'mod_imageblog'),
     ]);
     $loadermap = ['gltf' => 'GLTFLoader', 'stl' => 'STLLoader', 'ply' => 'PLYLoader', 'obj' => 'OBJLoader'];
-    $loaderurl = function($name) {
+    $loaderurl = function ($name) {
         return (new moodle_url('/mod/imageblog/thirdparty/three/js/loaders/' . $name . '.js'))->out(false);
     };
     $threejs = (new moodle_url('/mod/imageblog/thirdparty/three/build/three.min.js'))->out(false);
