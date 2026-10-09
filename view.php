@@ -407,12 +407,21 @@ require([], function() {
         var files = cfg.files || {};
         var manager = new THREE.LoadingManager();
         manager.setURLModifier(function(url) {
+            // Match on a path-segment boundary and prefer the longest (most
+            // specific) key, so e.g. 'parts/a.png' wins over 'a.png' and a bare
+            // 'scene.png' is never matched by 'ne.png'.
+            var best = null;
             for (var rel in files) {
-                if (Object.prototype.hasOwnProperty.call(files, rel) && rel && url.slice(-rel.length) === rel) {
-                    return files[rel];
+                if (!Object.prototype.hasOwnProperty.call(files, rel) || !rel) {
+                    continue;
+                }
+                if (url === rel || url.slice(-(rel.length + 1)) === '/' + rel) {
+                    if (best === null || rel.length > best.length) {
+                        best = rel;
+                    }
                 }
             }
-            return url;
+            return best === null ? url : files[best];
         });
         var width = region.clientWidth || 640;
         var height = Math.round(width * 9 / 16);
@@ -534,27 +543,47 @@ require([], function() {
                 };
                 var mtls = cfg.mtls || [];
                 if (mtls.length) {
-                    // Fetch every material library the bundle carries and merge them
-                    // into one set, so an OBJ that declares several mtllib files gets
-                    // all of its materials (the manager maps their textures to the
-                    // right pluginfile URLs). A failed library is skipped.
-                    var fileLoader = new THREE.FileLoader(manager);
-                    var texts = [];
+                    // Load every material library the bundle carries and merge them
+                    // per material, so an OBJ that declares several mtllib files gets
+                    // all of its materials. Each library is parsed with its own
+                    // directory as the base, so a library's textures resolve to the
+                    // path the companion map is keyed by; the already-canonical .mtl
+                    // URLs are fetched with a plain loader so they are never remapped.
+                    // A library that fails to load or parse is skipped.
+                    var plainLoader = new THREE.FileLoader();
+                    var materialsByName = {};
                     var index = 0;
+                    var buildMerged = function() {
+                        if (!Object.keys(materialsByName).length) {
+                            return null;
+                        }
+                        return {
+                            preload: function() {},
+                            create: function(name) {
+                                return materialsByName[name] || null;
+                            }
+                        };
+                    };
                     var loadNextMtl = function() {
                         if (index >= mtls.length) {
-                            if (!texts.length) {
-                                loadObj(null);
-                                return;
-                            }
-                            var newline = String.fromCharCode(10);
-                            var materials = new THREE.MTLLoader(manager).parse(texts.join(newline), '');
-                            materials.preload();
-                            loadObj(materials);
+                            loadObj(buildMerged());
                             return;
                         }
-                        fileLoader.load(mtls[index], function(text) {
-                            texts.push(text);
+                        var url = mtls[index];
+                        var dir = url.substring(0, url.lastIndexOf('/') + 1);
+                        plainLoader.load(url, function(text) {
+                            try {
+                                var mc = new THREE.MTLLoader(manager).parse(text, dir);
+                                mc.preload();
+                                for (var name in mc.materialsInfo) {
+                                    if (Object.prototype.hasOwnProperty.call(mc.materialsInfo, name)
+                                        && !materialsByName[name]) {
+                                        materialsByName[name] = mc.create(name);
+                                    }
+                                }
+                            } catch (err) {
+                                // Skip a malformed library rather than failing the model.
+                            }
                             index++;
                             loadNextMtl();
                         }, undefined, function() {
