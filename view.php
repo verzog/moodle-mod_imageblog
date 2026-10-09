@@ -54,17 +54,21 @@ if ($panoramaurl) {
     $PAGE->requires->css(new moodle_url('/mod/imageblog/thirdparty/pannellum/pannellum.css'));
 }
 
-// A case may also carry an optional 3D model (STL/PLY/OBJ/glTF/GLB). Resolve its
-// URL and viewer format from the stored file; the Three.js viewer loads lazily below.
-$modelurl = imageblog_get_model_url($context);
+// A case may also carry an optional 3D model (STL/PLY/OBJ/glTF/GLB), possibly
+// with companion files (glTF buffers/textures, an OBJ material library). Resolve
+// the main model file and viewer format; the Three.js viewer loads lazily below.
+$modelmainfile = imageblog_get_model_mainfile($context);
+$modelurl = null;
 $modelformat = '';
-if ($modelurl) {
-    $modelfiles = get_file_storage()->get_area_files($context->id, 'mod_imageblog', 'model', 0, 'itemid', false);
-    $modelfile = reset($modelfiles);
-    $modelformat = imageblog_model_format($modelfile->get_filename());
-    // An unrecognised extension means nothing can render it, so skip the viewer.
-    if ($modelformat === '') {
-        $modelurl = null;
+$modelmtlurl = null;
+if ($modelmainfile) {
+    $modelformat = imageblog_model_format($modelmainfile->get_filename());
+    if ($modelformat !== '') {
+        $modelurl = imageblog_model_file_url($modelmainfile);
+        // An OBJ may ship a .mtl material library; load it when present.
+        if ($modelformat === 'obj') {
+            $modelmtlurl = imageblog_get_model_companion_url($context, 'mtl');
+        }
     }
 }
 
@@ -291,16 +295,24 @@ if ($modelurl) {
         'aria-label' => get_string('model', 'mod_imageblog'),
     ]);
     $loadermap = ['gltf' => 'GLTFLoader', 'stl' => 'STLLoader', 'ply' => 'PLYLoader', 'obj' => 'OBJLoader'];
+    $loaderurl = function($name) {
+        return (new moodle_url('/mod/imageblog/thirdparty/three/js/loaders/' . $name . '.js'))->out(false);
+    };
     $threejs = (new moodle_url('/mod/imageblog/thirdparty/three/build/three.min.js'))->out(false);
     $controlsjs = (new moodle_url('/mod/imageblog/thirdparty/three/js/controls/OrbitControls.js'))->out(false);
-    $loaderjs = (new moodle_url(
-        '/mod/imageblog/thirdparty/three/js/loaders/' . $loadermap[$modelformat] . '.js'
-    ))->out(false);
+    // Load the format's loader after the controls; an OBJ with a material library
+    // also needs the MTLLoader, loaded before the OBJLoader.
+    $scripts = [$controlsjs];
+    if ($modelformat === 'obj' && $modelmtlurl) {
+        $scripts[] = $loaderurl('MTLLoader');
+    }
+    $scripts[] = $loaderurl($loadermap[$modelformat]);
     $config = json_encode([
         'three' => $threejs,
-        'scripts' => [$controlsjs, $loaderjs],
+        'scripts' => $scripts,
         'model' => $modelurl->out(false),
         'format' => $modelformat,
+        'mtl' => $modelmtlurl ? $modelmtlurl->out(false) : null,
     ]);
     $PAGE->requires->js_amd_inline("
 require([], function() {
@@ -477,7 +489,29 @@ require([], function() {
                     }
                 }, undefined, teardown);
             } else if (cfg.format === 'obj') {
-                new THREE.OBJLoader().load(cfg.model, addObject, undefined, teardown);
+                var loadObj = function(materials) {
+                    var loader = new THREE.OBJLoader();
+                    if (materials) {
+                        loader.setMaterials(materials);
+                    }
+                    loader.load(cfg.model, addObject, undefined, teardown);
+                };
+                if (cfg.mtl) {
+                    // Resolve the material library (and its textures) relative to the model area.
+                    var slash = cfg.mtl.lastIndexOf('/') + 1;
+                    var mtlLoader = new THREE.MTLLoader();
+                    mtlLoader.setPath(cfg.mtl.substring(0, slash));
+                    mtlLoader.setResourcePath(cfg.mtl.substring(0, slash));
+                    mtlLoader.load(cfg.mtl.substring(slash), function(materials) {
+                        materials.preload();
+                        loadObj(materials);
+                    }, undefined, function() {
+                        // Materials failed: fall back to geometry only rather than nothing.
+                        loadObj(null);
+                    });
+                } else {
+                    loadObj(null);
+                }
             } else {
                 teardown();
                 return;

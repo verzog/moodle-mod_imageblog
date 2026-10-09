@@ -102,6 +102,53 @@ final class model_test extends \advanced_testcase {
     }
 
     /**
+     * With companion files present, the main model is the recognised model file,
+     * not a buffer or texture, whatever order they are stored in.
+     */
+    public function test_get_model_url_picks_main_among_companions(): void {
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course();
+        /** @var \mod_imageblog_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
+        $imageblog = $generator->create_instance(['course' => $course->id]);
+        $context = \context_module::instance($imageblog->cmid);
+
+        // A glTF bundle: the JSON model plus its buffer and a texture.
+        $this->store_model($context, 'scene.bin');
+        $this->store_model($context, 'texture.png');
+        $this->store_model($context, 'scene.gltf');
+
+        $main = imageblog_get_model_mainfile($context);
+        $this->assertNotNull($main);
+        $this->assertSame('scene.gltf', $main->get_filename());
+        $this->assertSame('gltf', imageblog_model_format($main->get_filename()));
+        $this->assertStringContainsString('scene.gltf', imageblog_get_model_url($context)->out(false));
+    }
+
+    /**
+     * An OBJ's .mtl companion is discoverable so the viewer can load materials.
+     */
+    public function test_get_model_companion_url_finds_mtl(): void {
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course();
+        /** @var \mod_imageblog_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
+        $imageblog = $generator->create_instance(['course' => $course->id]);
+        $context = \context_module::instance($imageblog->cmid);
+
+        $this->store_model($context, 'mesh.obj');
+        $this->store_model($context, 'mesh.mtl');
+
+        $this->assertSame('obj', imageblog_model_format(imageblog_get_model_mainfile($context)->get_filename()));
+        $mtl = imageblog_get_model_companion_url($context, 'mtl');
+        $this->assertInstanceOf(\moodle_url::class, $mtl);
+        $this->assertStringContainsString('mesh.mtl', $mtl->out(false));
+        $this->assertNull(imageblog_get_model_companion_url($context, 'bin'));
+    }
+
+    /**
      * Saving with the toggle off clears any previously stored model.
      */
     public function test_save_model_toggle_off_clears_existing(): void {

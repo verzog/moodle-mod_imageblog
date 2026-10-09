@@ -109,20 +109,24 @@ activity.
 
 A case can also carry an optional **3D model**, rendered as an interactive
 viewer on the case page with the bundled [three.js](https://github.com/mrdoob/three.js)
-library. Enable it on the activity form with *Include a 3D model* and upload a
-file in one of these formats (up to 50 MB):
+library. Enable it on the activity form with *Include a 3D model* and upload the
+main model file (up to 50 MB each) — and, when the format needs them, its
+companion files alongside it (subfolders are allowed):
 
 | Format | Extensions | Notes |
 | --- | --- | --- |
-| glTF / GLB | `.gltf`, `.glb` | Must be self-contained: a binary `.glb`, or a `.gltf` with embedded buffers. A `.gltf` that references external `.bin`/texture files will not load, since companion files are not uploaded. Materials and textures render. |
+| glTF / GLB | `.gltf`, `.glb` | A binary `.glb` is self-contained. A `.gltf` may reference an external `.bin` buffer and texture images — upload those alongside it at the paths the glTF expects. Materials and textures render. |
 | STL | `.stl` | Geometry only (ASCII or binary); a neutral material is applied. |
-| PLY | `.ply` | Geometry only; a neutral material is applied. |
-| OBJ | `.obj` | Geometry only — the companion `.mtl`/textures are not loaded in this version. |
+| PLY | `.ply` | Mesh, or a point cloud (e.g. an Open3D scan) when the file has no faces; vertex colours render. |
+| OBJ | `.obj` | Upload the companion `.mtl` material library (and its textures) to render materials; without it the geometry renders with a neutral material. |
 
-Readers drag to rotate, and scroll or pinch to zoom; the model is auto-centred
-and framed. The viewer and the chosen format's loader load lazily and degrade
-to a short message if they cannot start. The model file backs up and restores
-with the activity.
+Companion files (`.bin`, `.mtl`, `.png`, `.jpg`, `.jpeg`, `.webp`) are served
+from the activity's file area so the loader resolves them relative to the main
+model, and the first recognised model file in the upload is used as the main
+model. Readers drag to rotate, and scroll or pinch to zoom; the model is
+auto-centred and framed. The viewer and the chosen format's loader load lazily
+and degrade to a short message if they cannot start. The model and its
+companion files back up and restore with the activity.
 
 ## Roadmap
 

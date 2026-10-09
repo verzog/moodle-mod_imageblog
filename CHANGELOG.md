@@ -4,6 +4,22 @@ All notable changes to the Image blog activity (`mod_imageblog`) are documented
 here. The format is based on [Keep a Changelog](https://keepachangelog.com/), and
 the project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [0.11.0] - 2026-10-09
+
+### Added
+- **Companion files for 3D models.** The model uploader now accepts multiple
+  files and subfolders, so a glTF that references an external `.bin` buffer and
+  textures, or an OBJ with a `.mtl` material library and textures, can be
+  uploaded together with the main model. Companion files (`.bin`, `.mtl`,
+  `.png`, `.jpg`, `.jpeg`, `.webp`) are served from the model file area so the
+  loader resolves them relative to the main model; the first recognised model
+  file is used as the main model. OBJ materials now render via the bundled
+  MTLLoader (falling back to geometry when the `.mtl` is missing or fails).
+
+### Changed
+- The 3D model file area is now multi-file; existing single-file models continue
+  to work unchanged. No schema change.
+
 ## [0.10.0] - 2026-10-08
 
 ### Added
@@ -135,6 +151,7 @@ Initial walking skeleton.
   difficulty multipliers and the best-answer bonus — see
   `moodle-local_imageblog/doc/mod_imageblog-grading-plan.md`.
 
+[0.11.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.11.0
 [0.10.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.10.0
 [0.9.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.9.0
 [0.8.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.8.0
