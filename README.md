@@ -10,7 +10,7 @@ local plugin is the public, site-wide showcase, while this activity brings the
 clinical-case flow into a course where it can be graded and tracked. The two
 share a context-neutral scoring engine.
 
-> **Status: early alpha (v0.10.0).** It installs, adds to a course, shows a
+> **Status: early alpha (v0.12.0).** It installs, adds to a course, shows a
 > case, accepts a diagnosis, writes a CPD-style grade on reveal (with a
 > teacher-selected best-answer bonus), supports reader questions with teacher
 > answers, tags cases for browsing, tracks activity completion, sends
@@ -33,6 +33,10 @@ share a context-neutral scoring engine.
    until the outcome is revealed).
 3. The teacher reveals the outcome. Each student who submitted is graded (see
    **Grading** below) and the grade flows to the gradebook.
+4. Around that core flow, a case can also carry a question-and-answer thread,
+   case tags, activity-completion tracking, event notifications, and optional
+   interactive **360° panorama** and **3D model** media — each described in its
+   own section below. The activity backs up and restores with the course.
 
 ## Requirements note
 
