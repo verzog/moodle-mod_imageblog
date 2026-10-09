@@ -482,23 +482,24 @@ function imageblog_get_model_url($context) {
 }
 
 /**
- * URL of the first companion file with the given extension (e.g. an OBJ's .mtl
- * material library), or null when none is stored.
+ * URLs of every companion file with the given extension (e.g. an OBJ's .mtl
+ * material libraries), ordered by path then name.
  *
  * @param context $context the module context
  * @param string $extension the companion extension to find, without a leading dot
- * @return moodle_url|null the pluginfile URL, or null when no such file exists
+ * @return moodle_url[] the pluginfile URLs, empty when no such file is stored
  */
-function imageblog_get_model_companion_url($context, $extension) {
+function imageblog_get_model_companion_urls($context, $extension) {
     $fs = get_file_storage();
     $files = $fs->get_area_files($context->id, 'mod_imageblog', 'model', 0, 'filepath, filename', false);
     $extension = core_text::strtolower($extension);
+    $urls = [];
     foreach ($files as $file) {
         if (core_text::strtolower(pathinfo($file->get_filename(), PATHINFO_EXTENSION)) === $extension) {
-            return imageblog_model_file_url($file);
+            $urls[] = imageblog_model_file_url($file);
         }
     }
-    return null;
+    return $urls;
 }
 
 /**

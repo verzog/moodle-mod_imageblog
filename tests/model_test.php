@@ -127,9 +127,10 @@ final class model_test extends \advanced_testcase {
     }
 
     /**
-     * An OBJ's .mtl companion is discoverable so the viewer can load materials.
+     * Every .mtl companion is discoverable so an OBJ that declares several
+     * material libraries gets all of them, while other extensions return none.
      */
-    public function test_get_model_companion_url_finds_mtl(): void {
+    public function test_get_model_companion_urls_finds_all_mtl(): void {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course();
@@ -139,13 +140,16 @@ final class model_test extends \advanced_testcase {
         $context = \context_module::instance($imageblog->cmid);
 
         $this->store_model($context, 'mesh.obj');
-        $this->store_model($context, 'mesh.mtl');
+        $this->store_model($context, 'materials1.mtl');
+        $this->store_model($context, 'materials2.mtl');
 
         $this->assertSame('obj', imageblog_model_format(imageblog_get_model_mainfile($context)->get_filename()));
-        $mtl = imageblog_get_model_companion_url($context, 'mtl');
-        $this->assertInstanceOf(\moodle_url::class, $mtl);
-        $this->assertStringContainsString('mesh.mtl', $mtl->out(false));
-        $this->assertNull(imageblog_get_model_companion_url($context, 'bin'));
+        $mtls = imageblog_get_model_companion_urls($context, 'mtl');
+        $this->assertCount(2, $mtls);
+        $names = array_map(fn($u) => $u->out(false), $mtls);
+        $this->assertStringContainsString('materials1.mtl', implode(' ', $names));
+        $this->assertStringContainsString('materials2.mtl', implode(' ', $names));
+        $this->assertSame([], imageblog_get_model_companion_urls($context, 'bin'));
     }
 
     /**

@@ -4,6 +4,17 @@ All notable changes to the Image blog activity (`mod_imageblog`) are documented
 here. The format is based on [Keep a Changelog](https://keepachangelog.com/), and
 the project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [0.12.0] - 2026-10-09
+
+### Changed
+- **OBJ material libraries.** An OBJ that declares more than one `mtllib` is now
+  fully supported: the viewer loads every uploaded `.mtl` companion and merges
+  them into one material set before applying it to the mesh, rather than using
+  only the first library. Replaces `imageblog_get_model_companion_url()` with
+  `imageblog_get_model_companion_urls()` (returns all matches); the viewer
+  fetches and combines the libraries, with their textures still mapped to the
+  correct pluginfile URLs. No schema change.
+
 ## [0.11.0] - 2026-10-09
 
 ### Added
@@ -151,6 +162,7 @@ Initial walking skeleton.
   difficulty multipliers and the best-answer bonus — see
   `moodle-local_imageblog/doc/mod_imageblog-grading-plan.md`.
 
+[0.12.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.12.0
 [0.11.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.11.0
 [0.10.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.10.0
 [0.9.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.9.0

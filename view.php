@@ -60,14 +60,14 @@ if ($panoramaurl) {
 $modelmainfile = imageblog_get_model_mainfile($context);
 $modelurl = null;
 $modelformat = '';
-$modelmtlurl = null;
+$modelmtlurls = [];
 if ($modelmainfile) {
     $modelformat = imageblog_model_format($modelmainfile->get_filename());
     if ($modelformat !== '') {
         $modelurl = imageblog_model_file_url($modelmainfile);
-        // An OBJ may ship a .mtl material library; load it when present.
+        // An OBJ may ship one or more .mtl material libraries; load them all.
         if ($modelformat === 'obj') {
-            $modelmtlurl = imageblog_get_model_companion_url($context, 'mtl');
+            $modelmtlurls = imageblog_get_model_companion_urls($context, 'mtl');
         }
     }
 }
@@ -300,10 +300,10 @@ if ($modelurl) {
     };
     $threejs = (new moodle_url('/mod/imageblog/thirdparty/three/build/three.min.js'))->out(false);
     $controlsjs = (new moodle_url('/mod/imageblog/thirdparty/three/js/controls/OrbitControls.js'))->out(false);
-    // Load the format's loader after the controls; an OBJ with a material library
-    // also needs the MTLLoader, loaded before the OBJLoader.
+    // Load the format's loader after the controls; an OBJ with material
+    // libraries also needs the MTLLoader, loaded before the OBJLoader.
     $scripts = [$controlsjs];
-    if ($modelformat === 'obj' && $modelmtlurl) {
+    if ($modelformat === 'obj' && $modelmtlurls) {
         $scripts[] = $loaderurl('MTLLoader');
     }
     $scripts[] = $loaderurl($loadermap[$modelformat]);
@@ -324,12 +324,16 @@ if ($modelurl) {
             ? substr($full, strlen($mainprefix)) : $full;
         $companions[$rel] = imageblog_model_file_url($cfile)->out(false);
     }
+    $mtlurls = [];
+    foreach ($modelmtlurls as $mtlurl) {
+        $mtlurls[] = $mtlurl->out(false);
+    }
     $config = json_encode([
         'three' => $threejs,
         'scripts' => $scripts,
         'model' => $modelurl->out(false),
         'format' => $modelformat,
-        'mtl' => $modelmtlurl ? $modelmtlurl->out(false) : null,
+        'mtls' => $mtlurls,
         'files' => (object) $companions,
     ]);
     $PAGE->requires->js_amd_inline("
@@ -528,15 +532,37 @@ require([], function() {
                     }
                     loader.load(cfg.model, addObject, undefined, teardown);
                 };
-                if (cfg.mtl) {
-                    // The manager rewrites the material textures to their pluginfile URLs.
-                    new THREE.MTLLoader(manager).load(cfg.mtl, function(materials) {
-                        materials.preload();
-                        loadObj(materials);
-                    }, undefined, function() {
-                        // Materials failed: fall back to geometry only rather than nothing.
-                        loadObj(null);
-                    });
+                var mtls = cfg.mtls || [];
+                if (mtls.length) {
+                    // Fetch every material library the bundle carries and merge them
+                    // into one set, so an OBJ that declares several mtllib files gets
+                    // all of its materials (the manager maps their textures to the
+                    // right pluginfile URLs). A failed library is skipped.
+                    var fileLoader = new THREE.FileLoader(manager);
+                    var texts = [];
+                    var index = 0;
+                    var loadNextMtl = function() {
+                        if (index >= mtls.length) {
+                            if (!texts.length) {
+                                loadObj(null);
+                                return;
+                            }
+                            var newline = String.fromCharCode(10);
+                            var materials = new THREE.MTLLoader(manager).parse(texts.join(newline), '');
+                            materials.preload();
+                            loadObj(materials);
+                            return;
+                        }
+                        fileLoader.load(mtls[index], function(text) {
+                            texts.push(text);
+                            index++;
+                            loadNextMtl();
+                        }, undefined, function() {
+                            index++;
+                            loadNextMtl();
+                        });
+                    };
+                    loadNextMtl();
                 } else {
                     loadObj(null);
                 }
