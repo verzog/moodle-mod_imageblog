@@ -60,14 +60,14 @@ if ($panoramaurl) {
 $modelmainfile = imageblog_get_model_mainfile($context);
 $modelurl = null;
 $modelformat = '';
-$modelmtlurl = null;
+$modelmtlurls = [];
 if ($modelmainfile) {
     $modelformat = imageblog_model_format($modelmainfile->get_filename());
     if ($modelformat !== '') {
         $modelurl = imageblog_model_file_url($modelmainfile);
-        // An OBJ may ship a .mtl material library; load it when present.
+        // An OBJ may ship one or more .mtl material libraries; load them all.
         if ($modelformat === 'obj') {
-            $modelmtlurl = imageblog_get_model_companion_url($context, 'mtl');
+            $modelmtlurls = imageblog_get_model_companion_urls($context, 'mtl');
         }
     }
 }
@@ -300,10 +300,10 @@ if ($modelurl) {
     };
     $threejs = (new moodle_url('/mod/imageblog/thirdparty/three/build/three.min.js'))->out(false);
     $controlsjs = (new moodle_url('/mod/imageblog/thirdparty/three/js/controls/OrbitControls.js'))->out(false);
-    // Load the format's loader after the controls; an OBJ with a material library
-    // also needs the MTLLoader, loaded before the OBJLoader.
+    // Load the format's loader after the controls; an OBJ with material
+    // libraries also needs the MTLLoader, loaded before the OBJLoader.
     $scripts = [$controlsjs];
-    if ($modelformat === 'obj' && $modelmtlurl) {
+    if ($modelformat === 'obj' && $modelmtlurls) {
         $scripts[] = $loaderurl('MTLLoader');
     }
     $scripts[] = $loaderurl($loadermap[$modelformat]);
@@ -324,12 +324,16 @@ if ($modelurl) {
             ? substr($full, strlen($mainprefix)) : $full;
         $companions[$rel] = imageblog_model_file_url($cfile)->out(false);
     }
+    $mtlurls = [];
+    foreach ($modelmtlurls as $mtlurl) {
+        $mtlurls[] = $mtlurl->out(false);
+    }
     $config = json_encode([
         'three' => $threejs,
         'scripts' => $scripts,
         'model' => $modelurl->out(false),
         'format' => $modelformat,
-        'mtl' => $modelmtlurl ? $modelmtlurl->out(false) : null,
+        'mtls' => $mtlurls,
         'files' => (object) $companions,
     ]);
     $PAGE->requires->js_amd_inline("
@@ -403,12 +407,21 @@ require([], function() {
         var files = cfg.files || {};
         var manager = new THREE.LoadingManager();
         manager.setURLModifier(function(url) {
+            // Match on a path-segment boundary and prefer the longest (most
+            // specific) key, so e.g. 'parts/a.png' wins over 'a.png' and a bare
+            // 'scene.png' is never matched by 'ne.png'.
+            var best = null;
             for (var rel in files) {
-                if (Object.prototype.hasOwnProperty.call(files, rel) && rel && url.slice(-rel.length) === rel) {
-                    return files[rel];
+                if (!Object.prototype.hasOwnProperty.call(files, rel) || !rel) {
+                    continue;
+                }
+                if (url === rel || url.slice(-(rel.length + 1)) === '/' + rel) {
+                    if (best === null || rel.length > best.length) {
+                        best = rel;
+                    }
                 }
             }
-            return url;
+            return best === null ? url : files[best];
         });
         var width = region.clientWidth || 640;
         var height = Math.round(width * 9 / 16);
@@ -528,15 +541,57 @@ require([], function() {
                     }
                     loader.load(cfg.model, addObject, undefined, teardown);
                 };
-                if (cfg.mtl) {
-                    // The manager rewrites the material textures to their pluginfile URLs.
-                    new THREE.MTLLoader(manager).load(cfg.mtl, function(materials) {
-                        materials.preload();
-                        loadObj(materials);
-                    }, undefined, function() {
-                        // Materials failed: fall back to geometry only rather than nothing.
-                        loadObj(null);
-                    });
+                var mtls = cfg.mtls || [];
+                if (mtls.length) {
+                    // Load every material library the bundle carries and merge them
+                    // per material, so an OBJ that declares several mtllib files gets
+                    // all of its materials. Each library is parsed with its own
+                    // directory as the base, so a library's textures resolve to the
+                    // path the companion map is keyed by; the already-canonical .mtl
+                    // URLs are fetched with a plain loader so they are never remapped.
+                    // A library that fails to load or parse is skipped.
+                    var plainLoader = new THREE.FileLoader();
+                    var materialsByName = {};
+                    var index = 0;
+                    var buildMerged = function() {
+                        if (!Object.keys(materialsByName).length) {
+                            return null;
+                        }
+                        return {
+                            preload: function() {},
+                            create: function(name) {
+                                return materialsByName[name] || null;
+                            }
+                        };
+                    };
+                    var loadNextMtl = function() {
+                        if (index >= mtls.length) {
+                            loadObj(buildMerged());
+                            return;
+                        }
+                        var url = mtls[index];
+                        var dir = url.substring(0, url.lastIndexOf('/') + 1);
+                        plainLoader.load(url, function(text) {
+                            try {
+                                var mc = new THREE.MTLLoader(manager).parse(text, dir);
+                                mc.preload();
+                                for (var name in mc.materialsInfo) {
+                                    if (Object.prototype.hasOwnProperty.call(mc.materialsInfo, name)
+                                        && !materialsByName[name]) {
+                                        materialsByName[name] = mc.create(name);
+                                    }
+                                }
+                            } catch (err) {
+                                // Skip a malformed library rather than failing the model.
+                            }
+                            index++;
+                            loadNextMtl();
+                        }, undefined, function() {
+                            index++;
+                            loadNextMtl();
+                        });
+                    };
+                    loadNextMtl();
                 } else {
                     loadObj(null);
                 }
