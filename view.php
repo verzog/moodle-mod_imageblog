@@ -148,9 +148,20 @@ if ($cansubmit && empty($imageblog->revealed)) {
         }
         $now = time();
         if ($existing) {
+            // If the teacher had already graded this diagnosis with an advanced
+            // grading method and the text now changes, that assessment no longer
+            // applies: clear the stored grade and the gradebook entry so the
+            // teacher re-marks the new answer.
+            $invalidategrade = $existing->rubricgrade !== null && $existing->diagnosis !== $data->diagnosis;
             $existing->diagnosis = $data->diagnosis;
             $existing->timemodified = $now;
+            if ($invalidategrade) {
+                $existing->rubricgrade = null;
+            }
             $DB->update_record('imageblog_diagnoses', $existing);
+            if ($invalidategrade) {
+                imageblog_update_grades($imageblog, $USER->id);
+            }
         } else {
             $record = (object) [
                 'imageblogid' => $imageblog->id,

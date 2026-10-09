@@ -44,7 +44,7 @@ class backup_imageblog_activity_structure_step extends backup_activity_structure
 
         $diagnoses = new backup_nested_element('diagnoses');
         $diagnosis = new backup_nested_element('diagnosis', ['id'], [
-            'userid', 'diagnosis', 'timecreated', 'timemodified',
+            'userid', 'diagnosis', 'rubricgrade', 'timecreated', 'timemodified',
         ]);
 
         $questions = new backup_nested_element('questions');

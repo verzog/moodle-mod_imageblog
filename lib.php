@@ -105,7 +105,17 @@ function imageblog_update_instance($data, $mform = null) {
     // real reveal state to decide whether grades exist.
     $imageblog = $DB->get_record('imageblog', ['id' => $data->id], '*', MUST_EXIST);
     imageblog_grade_item_update($imageblog);
-    imageblog_update_grades($imageblog);
+    // Core activates the chosen advanced grading method only after this returns
+    // (edit_module_post_actions runs later), so imageblog_grading_active() still
+    // reports the previous method here. Decide from the submitted selector
+    // instead: when a method is (about to be) active, publish stored rubric
+    // points and clear any automatic grades a previous method left behind;
+    // otherwise run the engine grade pass.
+    if (!empty($data->advancedgradingmethod_submissions)) {
+        imageblog_publish_rubric_grades($imageblog);
+    } else {
+        imageblog_update_grades($imageblog);
+    }
 
     $context = context_module::instance($data->coursemodule);
     if (isset($data->casetags)) {
@@ -337,6 +347,38 @@ function imageblog_update_grades($imageblog, $userid = 0, $nullifnone = true) {
         imageblog_grade_item_update($imageblog, (object) ['userid' => $userid, 'rawgrade' => null]);
     } else {
         imageblog_grade_item_update($imageblog);
+    }
+}
+
+/**
+ * Push every submission's stored advanced-grading (e.g. rubric) points into the
+ * gradebook, writing a null grade for submissions that have not been marked.
+ *
+ * This is the reconcile used when a grading method is turned on while editing
+ * the instance: it clears any automatic grades a previous method left behind
+ * and publishes marks already entered, since manual marking now drives grades.
+ *
+ * @param stdClass $imageblog the instance record
+ * @return void
+ */
+function imageblog_publish_rubric_grades($imageblog) {
+    global $CFG, $DB;
+    require_once($CFG->libdir . '/gradelib.php');
+
+    imageblog_grade_item_update($imageblog);
+    if (empty($imageblog->grade) || $imageblog->grade <= 0) {
+        return;
+    }
+
+    $grades = [];
+    foreach ($DB->get_records('imageblog_diagnoses', ['imageblogid' => $imageblog->id]) as $record) {
+        $grades[$record->userid] = (object) [
+            'userid' => $record->userid,
+            'rawgrade' => $record->rubricgrade === null ? null : (float) $record->rubricgrade,
+        ];
+    }
+    if ($grades) {
+        imageblog_grade_item_update($imageblog, $grades);
     }
 }
 
@@ -782,8 +824,10 @@ function imageblog_notify_outcome_revealed($imageblog, $cm, $context, $userfrom)
 
     $a = imageblog_notification_data($imageblog, $cm);
     $url = new moodle_url('/mod/imageblog/view.php', ['id' => $cm->id]);
-    // Only the graded variant mentions a grade; an ungraded instance uses the plain one.
-    $bodykey = !empty($imageblog->grade) && $imageblog->grade > 0
+    // Only the graded variant mentions a grade, and only the engine grades on
+    // reveal; with an advanced grading method active the teacher marks
+    // separately, so the reveal itself awards nothing and uses the plain one.
+    $bodykey = !empty($imageblog->grade) && $imageblog->grade > 0 && !imageblog_grading_active($imageblog)
         ? 'messagebody_outcomerevealed'
         : 'messagebody_outcomerevealed_nograde';
     foreach ($recipients as $recipient) {

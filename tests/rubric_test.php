@@ -144,4 +144,50 @@ final class rubric_test extends \advanced_testcase {
         $this->assertArrayHasKey($studentid, $grades);
         $this->assertEqualsWithDelta(42.5, (float) $grades[$studentid]->rawgrade, 0.001);
     }
+
+    /**
+     * Publishing rubric grades sends each marked submission's points to the
+     * gradebook and a null for unmarked ones, clearing any earlier automatic
+     * grade left when the method was switched on.
+     */
+    public function test_publish_rubric_grades_writes_marks_and_clears_rest(): void {
+        global $CFG, $DB;
+        require_once($CFG->libdir . '/gradelib.php');
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course();
+        /** @var \mod_imageblog_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
+        $imageblog = $generator->create_instance(['course' => $course->id]);
+
+        $marked = $this->getDataGenerator()->create_and_enrol($course, 'student');
+        $unmarked = $this->getDataGenerator()->create_and_enrol($course, 'student');
+        $now = time();
+        $DB->insert_record('imageblog_diagnoses', (object) [
+            'imageblogid' => $imageblog->id,
+            'userid' => $marked->id,
+            'diagnosis' => 'pneumonia',
+            'rubricgrade' => 30.0,
+            'timecreated' => $now,
+            'timemodified' => $now,
+        ]);
+        $DB->insert_record('imageblog_diagnoses', (object) [
+            'imageblogid' => $imageblog->id,
+            'userid' => $unmarked->id,
+            'diagnosis' => 'effusion',
+            'timecreated' => $now,
+            'timemodified' => $now,
+        ]);
+
+        // Seed the gradebook with an automatic-looking grade for the unmarked
+        // user, as a previous method would have left behind.
+        imageblog_grade_item_update($imageblog, (object) ['userid' => $unmarked->id, 'rawgrade' => 80.0]);
+
+        imageblog_publish_rubric_grades($imageblog);
+
+        $all = grade_get_grades($course->id, 'mod', 'imageblog', $imageblog->id, [$marked->id, $unmarked->id]);
+        $graderow = reset($all->items)->grades;
+        $this->assertEqualsWithDelta(30.0, (float) $graderow[$marked->id]->grade, 0.001);
+        $this->assertNull($graderow[$unmarked->id]->grade);
+    }
 }
