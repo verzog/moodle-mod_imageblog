@@ -139,8 +139,7 @@ final class rubric_test extends \advanced_testcase {
         $this->assertSame([], imageblog_get_user_grades($imageblog));
 
         // Mark the submission: the stored points are returned verbatim.
-        $DB->set_field('imageblog_diagnoses', 'rubricgrade', 42.5,
-            ['imageblogid' => $imageblog->id, 'userid' => $studentid]);
+        $DB->set_field('imageblog_diagnoses', 'rubricgrade', 42.5, ['imageblogid' => $imageblog->id, 'userid' => $studentid]);
         $grades = imageblog_get_user_grades($imageblog, $studentid);
         $this->assertArrayHasKey($studentid, $grades);
         $this->assertEqualsWithDelta(42.5, (float) $grades[$studentid]->rawgrade, 0.001);

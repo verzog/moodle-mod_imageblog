@@ -31,7 +31,7 @@ use core_grades\local\gradeitem\advancedgrading_mapping;
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class gradeitems implements itemnumber_mapping, advancedgrading_mapping {
+class gradeitems implements advancedgrading_mapping, itemnumber_mapping {
     /**
      * Map the single grade itemnumber to its area name.
      *
