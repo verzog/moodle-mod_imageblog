@@ -118,7 +118,7 @@ companion files alongside it (subfolders are allowed):
 | glTF / GLB | `.gltf`, `.glb` | A binary `.glb` is self-contained. A `.gltf` may reference an external `.bin` buffer and texture images — upload those alongside it at the paths the glTF expects. Materials and textures render. |
 | STL | `.stl` | Geometry only (ASCII or binary); a neutral material is applied. |
 | PLY | `.ply` | Mesh, or a point cloud (e.g. an Open3D scan) when the file has no faces; vertex colours render. |
-| OBJ | `.obj` | Upload the companion `.mtl` material library (and its textures) to render materials; without it the geometry renders with a neutral material. |
+| OBJ | `.obj` | Upload a single companion `.mtl` material library (and its textures) to render materials; without it the geometry renders with a neutral material. |
 
 Companion files (`.bin`, `.mtl`, `.png`, `.jpg`, `.jpeg`, `.webp`) are served
 from the activity's file area so the loader resolves them relative to the main

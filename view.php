@@ -307,12 +307,31 @@ if ($modelurl) {
         $scripts[] = $loaderurl('MTLLoader');
     }
     $scripts[] = $loaderurl($loadermap[$modelformat]);
+    // Map each companion file to its real pluginfile URL, keyed by the path the
+    // model references it at (relative to the main model's folder). The viewer
+    // rewrites the loader's companion requests through this map, so companions
+    // resolve correctly even when the site has slasharguments disabled (where a
+    // query-style pluginfile URL defeats the loader's relative resolution).
+    $companions = [];
+    $mainprefix = ltrim($modelmainfile->get_filepath(), '/');
+    foreach (get_file_storage()->get_area_files(
+        $context->id, 'mod_imageblog', 'model', 0, 'filepath, filename', false
+    ) as $cfile) {
+        if ($cfile->get_pathnamehash() === $modelmainfile->get_pathnamehash()) {
+            continue;
+        }
+        $full = ltrim($cfile->get_filepath(), '/') . $cfile->get_filename();
+        $rel = ($mainprefix !== '' && strpos($full, $mainprefix) === 0)
+            ? substr($full, strlen($mainprefix)) : $full;
+        $companions[$rel] = imageblog_model_file_url($cfile)->out(false);
+    }
     $config = json_encode([
         'three' => $threejs,
         'scripts' => $scripts,
         'model' => $modelurl->out(false),
         'format' => $modelformat,
         'mtl' => $modelmtlurl ? $modelmtlurl->out(false) : null,
+        'files' => (object) $companions,
     ]);
     $PAGE->requires->js_amd_inline("
 require([], function() {
@@ -378,6 +397,20 @@ require([], function() {
     });
 
     function render(THREE) {
+        // Rewrite companion requests (glTF buffers/textures, OBJ materials and
+        // their textures) to their real pluginfile URLs, matched by the path the
+        // model references them at. This makes companions load regardless of how
+        // the loader resolved the relative URL (e.g. with slasharguments off).
+        var files = cfg.files || {};
+        var manager = new THREE.LoadingManager();
+        manager.setURLModifier(function(url) {
+            for (var rel in files) {
+                if (Object.prototype.hasOwnProperty.call(files, rel) && rel && url.slice(-rel.length) === rel) {
+                    return files[rel];
+                }
+            }
+            return url;
+        });
         var width = region.clientWidth || 640;
         var height = Math.round(width * 9 / 16);
         var scene = new THREE.Scene();
@@ -474,14 +507,14 @@ require([], function() {
         };
         try {
             if (cfg.format === 'gltf') {
-                new THREE.GLTFLoader().load(cfg.model, function(gltf) {
+                new THREE.GLTFLoader(manager).load(cfg.model, function(gltf) {
                     addObject(gltf.scene);
                 }, undefined, teardown);
             } else if (cfg.format === 'stl') {
-                new THREE.STLLoader().load(cfg.model, addMesh, undefined, teardown);
+                new THREE.STLLoader(manager).load(cfg.model, addMesh, undefined, teardown);
             } else if (cfg.format === 'ply') {
                 // A PLY with faces is a mesh; one without (e.g. an Open3D scan) is a point cloud.
-                new THREE.PLYLoader().load(cfg.model, function(geometry) {
+                new THREE.PLYLoader(manager).load(cfg.model, function(geometry) {
                     if (geometry.index) {
                         addMesh(geometry);
                     } else {
@@ -490,19 +523,15 @@ require([], function() {
                 }, undefined, teardown);
             } else if (cfg.format === 'obj') {
                 var loadObj = function(materials) {
-                    var loader = new THREE.OBJLoader();
+                    var loader = new THREE.OBJLoader(manager);
                     if (materials) {
                         loader.setMaterials(materials);
                     }
                     loader.load(cfg.model, addObject, undefined, teardown);
                 };
                 if (cfg.mtl) {
-                    // Resolve the material library (and its textures) relative to the model area.
-                    var slash = cfg.mtl.lastIndexOf('/') + 1;
-                    var mtlLoader = new THREE.MTLLoader();
-                    mtlLoader.setPath(cfg.mtl.substring(0, slash));
-                    mtlLoader.setResourcePath(cfg.mtl.substring(0, slash));
-                    mtlLoader.load(cfg.mtl.substring(slash), function(materials) {
+                    // The manager rewrites the material textures to their pluginfile URLs.
+                    new THREE.MTLLoader(manager).load(cfg.mtl, function(materials) {
                         materials.preload();
                         loadObj(materials);
                     }, undefined, function() {

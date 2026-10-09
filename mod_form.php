@@ -265,6 +265,39 @@ class mod_imageblog_mod_form extends moodleform_mod {
             }
         }
 
+        // A model bundle must contain a main model file: companions alone (a
+        // .bin, .mtl or texture) would save but render nothing on the case.
+        if (!empty($data['hasmodel']) && !empty($data['model_file'])) {
+            if (!$this->draft_has_main_model((int) $data['model_file'])) {
+                $errors['model_file'] = get_string('modelnomainfile', 'mod_imageblog');
+            }
+        }
+
         return $errors;
+    }
+
+    /**
+     * Whether a draft file area holds at least one recognised main-model file.
+     *
+     * @param int $draftitemid the submitted draft area id
+     * @return bool true if a glTF/GLB/STL/PLY/OBJ file is present
+     */
+    protected function draft_has_main_model(int $draftitemid): bool {
+        global $USER;
+
+        if (!$draftitemid) {
+            return false;
+        }
+        $usercontext = context_user::instance($USER->id);
+        $fs = get_file_storage();
+        $draftfiles = $fs->get_area_files($usercontext->id, 'user', 'draft', $draftitemid, 'filename', false);
+        $modelexts = array_map(fn($ext) => ltrim($ext, '.'), imageblog_model_extensions());
+        foreach ($draftfiles as $file) {
+            $ext = core_text::strtolower(pathinfo($file->get_filename(), PATHINFO_EXTENSION));
+            if (in_array($ext, $modelexts, true)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
