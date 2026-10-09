@@ -396,7 +396,7 @@ function imageblog_save_panorama($data, $context) {
 }
 
 /**
- * The 3D model file extensions the viewer can open.
+ * The 3D model file extensions the viewer can open as a main model.
  *
  * @return string[] accepted extensions, each with a leading dot
  */
@@ -405,36 +405,61 @@ function imageblog_model_extensions() {
 }
 
 /**
- * Filemanager/draft-area options for the 3D model file. The limit is generous
- * because meshes and scanned point clouds are often large.
+ * Companion file extensions a model may depend on (glTF buffers/textures and
+ * OBJ material libraries), uploaded alongside the main model file.
+ *
+ * @return string[] accepted companion extensions, each with a leading dot
+ */
+function imageblog_model_companion_extensions() {
+    return ['.bin', '.mtl', '.png', '.jpg', '.jpeg', '.webp'];
+}
+
+/**
+ * Filemanager/draft-area options for the 3D model files. Several files and
+ * subdirectories are allowed so a glTF or OBJ model can be uploaded together
+ * with its companion buffers, materials and textures; the per-file size limit
+ * is generous because meshes and scanned point clouds are often large.
  *
  * @return array the options array for file_prepare_draft_area/file_save_draft_area_files
  */
 function imageblog_model_filemanager_options() {
     return [
         'maxbytes' => 50 * 1024 * 1024,
-        'accepted_types' => imageblog_model_extensions(),
-        'maxfiles' => 1,
-        'subdirs' => 0,
+        'accepted_types' => array_merge(imageblog_model_extensions(), imageblog_model_companion_extensions()),
+        'maxfiles' => -1,
+        'subdirs' => 1,
     ];
 }
 
 /**
- * URL of the instance's 3D model file, or null if none is set.
- *
- * The file lives at itemid 0 in the module context, so the URL is built
- * without an itemid segment (as for the activity intro).
+ * The main model file for an instance: the first stored file (ordered by path
+ * then name) whose extension is a recognised model format. Companion files such
+ * as .bin buffers or textures are ignored when choosing it.
  *
  * @param context $context the module context
- * @return moodle_url|null the pluginfile URL, or null when no model exists
+ * @return stored_file|null the main model file, or null when none is stored
  */
-function imageblog_get_model_url($context) {
+function imageblog_get_model_mainfile($context) {
     $fs = get_file_storage();
-    $files = $fs->get_area_files($context->id, 'mod_imageblog', 'model', 0, 'itemid, filepath, filename', false);
-    if (!$files) {
-        return null;
+    $files = $fs->get_area_files($context->id, 'mod_imageblog', 'model', 0, 'filepath, filename', false);
+    $modelexts = array_map(fn($ext) => ltrim($ext, '.'), imageblog_model_extensions());
+    foreach ($files as $file) {
+        $ext = core_text::strtolower(pathinfo($file->get_filename(), PATHINFO_EXTENSION));
+        if (in_array($ext, $modelexts, true)) {
+            return $file;
+        }
     }
-    $file = reset($files);
+    return null;
+}
+
+/**
+ * URL of a stored model-area file, built without an itemid segment (as for the
+ * activity intro) so companion files resolve relative to the main model URL.
+ *
+ * @param stored_file $file a file stored in the model area
+ * @return moodle_url the pluginfile URL for the file
+ */
+function imageblog_model_file_url($file) {
     return moodle_url::make_pluginfile_url(
         $file->get_contextid(),
         $file->get_component(),
@@ -443,6 +468,37 @@ function imageblog_get_model_url($context) {
         $file->get_filepath(),
         $file->get_filename()
     );
+}
+
+/**
+ * URL of the instance's main 3D model file, or null if none is set.
+ *
+ * @param context $context the module context
+ * @return moodle_url|null the pluginfile URL, or null when no model exists
+ */
+function imageblog_get_model_url($context) {
+    $file = imageblog_get_model_mainfile($context);
+    return $file ? imageblog_model_file_url($file) : null;
+}
+
+/**
+ * URL of the first companion file with the given extension (e.g. an OBJ's .mtl
+ * material library), or null when none is stored.
+ *
+ * @param context $context the module context
+ * @param string $extension the companion extension to find, without a leading dot
+ * @return moodle_url|null the pluginfile URL, or null when no such file exists
+ */
+function imageblog_get_model_companion_url($context, $extension) {
+    $fs = get_file_storage();
+    $files = $fs->get_area_files($context->id, 'mod_imageblog', 'model', 0, 'filepath, filename', false);
+    $extension = core_text::strtolower($extension);
+    foreach ($files as $file) {
+        if (core_text::strtolower(pathinfo($file->get_filename(), PATHINFO_EXTENSION)) === $extension) {
+            return imageblog_model_file_url($file);
+        }
+    }
+    return null;
 }
 
 /**
@@ -472,11 +528,11 @@ function imageblog_model_format($filename) {
 }
 
 /**
- * Persist the submitted 3D model file for an instance.
+ * Persist the submitted 3D model files for an instance.
  *
  * When the model toggle is off the area is cleared, so unchecking it removes a
- * previously uploaded model; otherwise the draft file is saved into the module
- * context at itemid 0.
+ * previously uploaded model and its companions; otherwise the draft files are
+ * saved into the module context at itemid 0.
  *
  * @param stdClass $data submitted form data (with model_file draft id and coursemodule set)
  * @param context $context the module context

@@ -54,17 +54,21 @@ if ($panoramaurl) {
     $PAGE->requires->css(new moodle_url('/mod/imageblog/thirdparty/pannellum/pannellum.css'));
 }
 
-// A case may also carry an optional 3D model (STL/PLY/OBJ/glTF/GLB). Resolve its
-// URL and viewer format from the stored file; the Three.js viewer loads lazily below.
-$modelurl = imageblog_get_model_url($context);
+// A case may also carry an optional 3D model (STL/PLY/OBJ/glTF/GLB), possibly
+// with companion files (glTF buffers/textures, an OBJ material library). Resolve
+// the main model file and viewer format; the Three.js viewer loads lazily below.
+$modelmainfile = imageblog_get_model_mainfile($context);
+$modelurl = null;
 $modelformat = '';
-if ($modelurl) {
-    $modelfiles = get_file_storage()->get_area_files($context->id, 'mod_imageblog', 'model', 0, 'itemid', false);
-    $modelfile = reset($modelfiles);
-    $modelformat = imageblog_model_format($modelfile->get_filename());
-    // An unrecognised extension means nothing can render it, so skip the viewer.
-    if ($modelformat === '') {
-        $modelurl = null;
+$modelmtlurl = null;
+if ($modelmainfile) {
+    $modelformat = imageblog_model_format($modelmainfile->get_filename());
+    if ($modelformat !== '') {
+        $modelurl = imageblog_model_file_url($modelmainfile);
+        // An OBJ may ship a .mtl material library; load it when present.
+        if ($modelformat === 'obj') {
+            $modelmtlurl = imageblog_get_model_companion_url($context, 'mtl');
+        }
     }
 }
 
@@ -291,16 +295,42 @@ if ($modelurl) {
         'aria-label' => get_string('model', 'mod_imageblog'),
     ]);
     $loadermap = ['gltf' => 'GLTFLoader', 'stl' => 'STLLoader', 'ply' => 'PLYLoader', 'obj' => 'OBJLoader'];
+    $loaderurl = function ($name) {
+        return (new moodle_url('/mod/imageblog/thirdparty/three/js/loaders/' . $name . '.js'))->out(false);
+    };
     $threejs = (new moodle_url('/mod/imageblog/thirdparty/three/build/three.min.js'))->out(false);
     $controlsjs = (new moodle_url('/mod/imageblog/thirdparty/three/js/controls/OrbitControls.js'))->out(false);
-    $loaderjs = (new moodle_url(
-        '/mod/imageblog/thirdparty/three/js/loaders/' . $loadermap[$modelformat] . '.js'
-    ))->out(false);
+    // Load the format's loader after the controls; an OBJ with a material library
+    // also needs the MTLLoader, loaded before the OBJLoader.
+    $scripts = [$controlsjs];
+    if ($modelformat === 'obj' && $modelmtlurl) {
+        $scripts[] = $loaderurl('MTLLoader');
+    }
+    $scripts[] = $loaderurl($loadermap[$modelformat]);
+    // Map each companion file to its real pluginfile URL, keyed by the path the
+    // model references it at (relative to the main model's folder). The viewer
+    // rewrites the loader's companion requests through this map, so companions
+    // resolve correctly even when the site has slasharguments disabled (where a
+    // query-style pluginfile URL defeats the loader's relative resolution).
+    $companions = [];
+    $mainprefix = ltrim($modelmainfile->get_filepath(), '/');
+    $modelfiles = get_file_storage()->get_area_files($context->id, 'mod_imageblog', 'model', 0, 'filepath, filename', false);
+    foreach ($modelfiles as $cfile) {
+        if ($cfile->get_pathnamehash() === $modelmainfile->get_pathnamehash()) {
+            continue;
+        }
+        $full = ltrim($cfile->get_filepath(), '/') . $cfile->get_filename();
+        $rel = ($mainprefix !== '' && strpos($full, $mainprefix) === 0)
+            ? substr($full, strlen($mainprefix)) : $full;
+        $companions[$rel] = imageblog_model_file_url($cfile)->out(false);
+    }
     $config = json_encode([
         'three' => $threejs,
-        'scripts' => [$controlsjs, $loaderjs],
+        'scripts' => $scripts,
         'model' => $modelurl->out(false),
         'format' => $modelformat,
+        'mtl' => $modelmtlurl ? $modelmtlurl->out(false) : null,
+        'files' => (object) $companions,
     ]);
     $PAGE->requires->js_amd_inline("
 require([], function() {
@@ -366,6 +396,20 @@ require([], function() {
     });
 
     function render(THREE) {
+        // Rewrite companion requests (glTF buffers/textures, OBJ materials and
+        // their textures) to their real pluginfile URLs, matched by the path the
+        // model references them at. This makes companions load regardless of how
+        // the loader resolved the relative URL (e.g. with slasharguments off).
+        var files = cfg.files || {};
+        var manager = new THREE.LoadingManager();
+        manager.setURLModifier(function(url) {
+            for (var rel in files) {
+                if (Object.prototype.hasOwnProperty.call(files, rel) && rel && url.slice(-rel.length) === rel) {
+                    return files[rel];
+                }
+            }
+            return url;
+        });
         var width = region.clientWidth || 640;
         var height = Math.round(width * 9 / 16);
         var scene = new THREE.Scene();
@@ -462,14 +506,14 @@ require([], function() {
         };
         try {
             if (cfg.format === 'gltf') {
-                new THREE.GLTFLoader().load(cfg.model, function(gltf) {
+                new THREE.GLTFLoader(manager).load(cfg.model, function(gltf) {
                     addObject(gltf.scene);
                 }, undefined, teardown);
             } else if (cfg.format === 'stl') {
-                new THREE.STLLoader().load(cfg.model, addMesh, undefined, teardown);
+                new THREE.STLLoader(manager).load(cfg.model, addMesh, undefined, teardown);
             } else if (cfg.format === 'ply') {
                 // A PLY with faces is a mesh; one without (e.g. an Open3D scan) is a point cloud.
-                new THREE.PLYLoader().load(cfg.model, function(geometry) {
+                new THREE.PLYLoader(manager).load(cfg.model, function(geometry) {
                     if (geometry.index) {
                         addMesh(geometry);
                     } else {
@@ -477,7 +521,25 @@ require([], function() {
                     }
                 }, undefined, teardown);
             } else if (cfg.format === 'obj') {
-                new THREE.OBJLoader().load(cfg.model, addObject, undefined, teardown);
+                var loadObj = function(materials) {
+                    var loader = new THREE.OBJLoader(manager);
+                    if (materials) {
+                        loader.setMaterials(materials);
+                    }
+                    loader.load(cfg.model, addObject, undefined, teardown);
+                };
+                if (cfg.mtl) {
+                    // The manager rewrites the material textures to their pluginfile URLs.
+                    new THREE.MTLLoader(manager).load(cfg.mtl, function(materials) {
+                        materials.preload();
+                        loadObj(materials);
+                    }, undefined, function() {
+                        // Materials failed: fall back to geometry only rather than nothing.
+                        loadObj(null);
+                    });
+                } else {
+                    loadObj(null);
+                }
             } else {
                 teardown();
                 return;

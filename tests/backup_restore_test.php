@@ -220,8 +220,8 @@ final class backup_restore_test extends \advanced_testcase {
     }
 
     /**
-     * A case's 3D model file is backed up and restored, so the viewer still has
-     * its source after course copy, import or restore.
+     * A case's 3D model and its companion files are backed up and restored, so
+     * the viewer still has the whole bundle after course copy, import or restore.
      */
     public function test_backup_restore_carries_model(): void {
         global $DB, $USER;
@@ -236,14 +236,17 @@ final class backup_restore_test extends \advanced_testcase {
         $imageblog = $generator->create_instance(['course' => $course->id]);
         $context = \context_module::instance($imageblog->cmid);
 
-        get_file_storage()->create_file_from_string([
+        $fs = get_file_storage();
+        $base = [
             'contextid' => $context->id,
             'component' => 'mod_imageblog',
             'filearea' => 'model',
             'itemid' => 0,
             'filepath' => '/',
-            'filename' => 'heart.glb',
-        ], 'fake-model-bytes');
+        ];
+        // A glTF model with an external buffer companion.
+        $fs->create_file_from_string(['filename' => 'scene.gltf'] + $base, '{"asset":{"version":"2.0"}}');
+        $fs->create_file_from_string(['filename' => 'scene.bin'] + $base, 'fake-buffer-bytes');
 
         $backupid = $this->backup_activity($imageblog->cmid, $USER->id);
         $targetcourse = $this->getDataGenerator()->create_course();
@@ -253,9 +256,13 @@ final class backup_restore_test extends \advanced_testcase {
         $restoredcm = get_coursemodule_from_instance('imageblog', $restored->id, $targetcourse->id, false, MUST_EXIST);
         $restoredcontext = \context_module::instance($restoredcm->id);
 
+        // The main model resolves, and the companion buffer rode along with it.
         $url = imageblog_get_model_url($restoredcontext);
         $this->assertInstanceOf(\moodle_url::class, $url);
-        $this->assertStringContainsString('heart.glb', $url->out(false));
+        $this->assertStringContainsString('scene.gltf', $url->out(false));
+        $this->assertTrue(
+            $fs->file_exists($restoredcontext->id, 'mod_imageblog', 'model', 0, '/', 'scene.bin')
+        );
     }
 
     /**
