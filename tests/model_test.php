@@ -29,6 +29,7 @@ require_once($CFG->dirroot . '/mod/imageblog/lib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     ::imageblog_get_model_url
  * @covers     ::imageblog_model_format
+ * @covers     ::imageblog_model_file_accepted
  * @covers     ::imageblog_save_model
  */
 final class model_test extends \advanced_testcase {
@@ -61,6 +62,21 @@ final class model_test extends \advanced_testcase {
         $this->assertSame('obj', imageblog_model_format('mesh.obj'));
         $this->assertSame('', imageblog_model_format('notes.txt'));
         $this->assertSame('', imageblog_model_format('noextension'));
+    }
+
+    /**
+     * The accepted-type check allows every model and companion extension
+     * (case-insensitively) and rejects anything else.
+     */
+    public function test_model_file_accepted(): void {
+        $accepted = ['scene.glb', 'scene.GLTF', 'part.stl', 'scan.ply', 'mesh.obj',
+            'buffer.bin', 'library.mtl', 'texture.png', 'texture.jpg', 'texture.jpeg', 'texture.webp'];
+        foreach ($accepted as $name) {
+            $this->assertTrue(imageblog_model_file_accepted($name), $name);
+        }
+        foreach (['notes.txt', 'archive.zip', 'script.exe', 'noextension'] as $name) {
+            $this->assertFalse(imageblog_model_file_accepted($name), $name);
+        }
     }
 
     /**
