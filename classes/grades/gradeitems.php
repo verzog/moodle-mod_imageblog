@@ -14,20 +14,20 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace mod_imageblog\grades;
+namespace mod_diagnosis\grades;
 
 use core_grades\local\gradeitem\itemnumber_mapping;
 use core_grades\local\gradeitem\advancedgrading_mapping;
 
 /**
- * Grade item mappings for the image blog activity.
+ * Grade item mappings for the diagnosis activity.
  *
  * The activity has one grade item (itemnumber 0), the "submissions" area, which
  * may be marked with an advanced grading method such as a rubric. Declaring the
  * area here lets core offer the per-activity grading-method selector and route
  * advanced grading through the "submissions" area.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

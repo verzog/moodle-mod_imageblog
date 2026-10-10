@@ -1,8 +1,36 @@
 # Changelog
 
-All notable changes to the Image blog activity (`mod_imageblog`) are documented
+All notable changes to the Diagnosis activity (`mod_diagnosis`) are documented
 here. The format is based on [Keep a Changelog](https://keepachangelog.com/), and
 the project aims to follow [Semantic Versioning](https://semver.org/).
+
+## [0.1.0] - 2026-10-10
+
+Renamed from `mod_imageblog` to **`mod_diagnosis`** and made self-standing. As a
+Moodle component rename this is effectively a new plugin; existing
+`mod_imageblog` data is not migrated. Earlier entries below are the pre-rename
+history for reference.
+
+### Changed
+- **Decoupled from `local_imageblog`.** The dependency on the site-wide blog
+  plugin and its shared scoring engine is removed; the activity no longer
+  depends on any other plugin.
+- **Normal Moodle marking.** The bespoke auto-scoring engine (expected-diagnosis
+  matching, difficulty multipliers, participation/correct/best factors and the
+  reveal-time award) is gone. Teachers now mark each submitted diagnosis with
+  simple direct grading or an advanced grading method (rubric / marking guide),
+  exactly like the Assignment module. The per-submission mark is stored and
+  pushed to the gradebook.
+
+### Removed
+- The scoring factors, difficulty scale/level and best-answer bonus, and the
+  `local_imageblog` scoring adapter.
+
+### Kept
+- The case prompt, expected diagnosis and reveal/explanation workflow (reveal no
+  longer drives the grade), reader diagnosis submissions, questions & answers,
+  case tags, activity completion, notifications, and the optional 360° panorama
+  and 3D model viewers.
 
 ## [0.12.0] - 2026-10-09
 
@@ -10,8 +38,8 @@ the project aims to follow [Semantic Versioning](https://semver.org/).
 - **OBJ material libraries.** An OBJ that declares more than one `mtllib` is now
   fully supported: the viewer loads every uploaded `.mtl` companion and merges
   them into one material set before applying it to the mesh, rather than using
-  only the first library. Replaces `imageblog_get_model_companion_url()` with
-  `imageblog_get_model_companion_urls()` (returns all matches); the viewer
+  only the first library. Replaces `diagnosis_get_model_companion_url()` with
+  `diagnosis_get_model_companion_urls()` (returns all matches); the viewer
   fetches and combines the libraries, with their textures still mapped to the
   correct pluginfile URLs. No schema change.
 
@@ -41,7 +69,7 @@ the project aims to follow [Semantic Versioning](https://semver.org/).
   framed. STL/PLY render as geometry with a neutral material, and OBJ renders as
   geometry only (no companion `.mtl`). Adds the *Include a 3D model* toggle and
   uploader, a `model` module-context file area served through
-  `imageblog_pluginfile`, format detection, backup/restore of the model, viewer
+  `diagnosis_pluginfile`, format detection, backup/restore of the model, viewer
   styles, `thirdparty/three` with `thirdpartylibs.xml`, and PHPUnit tests. No
   schema change (the model lives in file storage).
 
@@ -52,7 +80,7 @@ the project aims to follow [Semantic Versioning](https://semver.org/).
   image, rendered as an interactive viewer on the case page with the bundled
   Pannellum library (loaded lazily, with a graceful fallback). Adds the
   *Include a 360° panorama* toggle and a file uploader on the activity form, a
-  `panorama` module-context file area served through `imageblog_pluginfile`,
+  `panorama` module-context file area served through `diagnosis_pluginfile`,
   backup/restore of the image, `styles.css`, `thirdparty/pannellum` with
   `thirdpartylibs.xml`, and PHPUnit tests. No schema change (the image lives in
   file storage). This completes the phased build-out in the design plan.
@@ -71,7 +99,7 @@ the project aims to follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 - **Case taxonomy (tags).** Cases can be tagged with a dedicated *Case tags*
-  field backed by a `mod_imageblog`/`imageblog` core tag area, kept separate
+  field backed by a `mod_diagnosis`/`diagnosis` core tag area, kept separate
   from the generic activity tags. Tags show on the case view and link to
   Moodle's tag pages, so readers can follow a tag to other cases that share it.
   Adds `db/tag.php`, the form field, display, backup/restore of the tags, and a
@@ -84,7 +112,7 @@ the project aims to follow [Semantic Versioning](https://semver.org/).
   custom rule *Student must submit a diagnosis* (`completionsubmit`) that
   completes once the student submits, plus the standard *view* rule. Adds the
   `completionsubmit` instance setting (with an upgrade step), the
-  `\mod_imageblog\completion\custom_completion` class, completion marking on
+  `\mod_diagnosis\completion\custom_completion` class, completion marking on
   view and on diagnosis submission, backup of the new setting, and a PHPUnit
   test for the rule state.
 
@@ -92,17 +120,17 @@ the project aims to follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 - **Questions & answers on a case.** Readers can ask questions about a case
-  (new `mod/imageblog:askquestion` capability) and teachers can answer or edit
-  an answer (`mod/imageblog:answerquestion`). Answered questions are shown to
+  (new `mod/diagnosis:askquestion` capability) and teachers can answer or edit
+  an answer (`mod/diagnosis:answerquestion`). Answered questions are shown to
   everyone; peers see other readers' questions anonymously, while the asker and
-  teachers see the name. Adds the `imageblog_questions` table (with an upgrade
+  teachers see the name. Adds the `diagnosis_questions` table (with an upgrade
   step), ask/answer forms, backup/restore of questions and answers (remapping
   both asker and answerer), and full privacy export/erasure for questions.
 
 ## [0.4.0] - 2026-10-07
 
 ### Added
-- **Backup and restore** (Moodle 2 format). An image blog activity now backs up
+- **Backup and restore** (Moodle 2 format). An diagnosis activity now backs up
   its case settings, the activity intro files, and — when user data is included
   — every submitted diagnosis. On restore the teacher-selected best answer is
   remapped to follow its diagnosis to the new id, so the best-answer bonus
@@ -128,8 +156,8 @@ the project aims to follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - Grade on the shared CPD-style scoring engine. The activity now depends on
-  `local_imageblog` and routes grading through `\local_imageblog\local\scoring`
-  via a thin `\mod_imageblog\local\grader` adapter, replacing the standalone
+  `local_diagnosis` and routes grading through `\local_diagnosis\local\scoring`
+  via a thin `\mod_diagnosis\local\grader` adapter, replacing the standalone
   correctness-only `case_engine`.
 
 ### Added
@@ -138,19 +166,19 @@ the project aims to follow [Semantic Versioning](https://semver.org/).
   factor, any other submission the participation factor, scaled by the case
   difficulty and capped at the maximum grade.
 - `db/upgrade.php` adds the new instance columns for existing installs.
-- CI installs `local_imageblog` as a dependency so the shared engine resolves.
+- CI installs `local_diagnosis` as a dependency so the shared engine resolves.
 
 ## [0.1.0] - 2026-10-04
 
 Initial walking skeleton.
 
 ### Added
-- Course activity `mod_imageblog` that presents a single clinical case:
+- Course activity `mod_diagnosis` that presents a single clinical case:
   readers submit a diagnosis and, once a teacher reveals the outcome, receive a
   gradebook grade.
 - Gradebook integration via the Grade API (one point-based grade item per
   instance, maximum configurable on the settings form).
-- A context-neutral scoring engine (`\mod_imageblog\local\case_engine`) shared
+- A context-neutral scoring engine (`\mod_diagnosis\local\case_engine`) shared
   with the wider project; the skeleton scores an exact match as full marks and
   any other submission as participation credit.
 - Privacy API provider covering the stored diagnoses (export and erasure).
@@ -160,17 +188,17 @@ Initial walking skeleton.
 ### Not yet included
 - Backup/restore, taxonomy, 360° panoramas, notifications, questions/answers,
   difficulty multipliers and the best-answer bonus — see
-  `moodle-local_imageblog/doc/mod_imageblog-grading-plan.md`.
+  `moodle-local_diagnosis/doc/mod_diagnosis-grading-plan.md`.
 
-[0.12.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.12.0
-[0.11.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.11.0
-[0.10.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.10.0
-[0.9.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.9.0
-[0.8.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.8.0
-[0.7.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.7.0
-[0.6.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.6.0
-[0.5.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.5.0
-[0.4.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.4.0
-[0.3.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.3.0
-[0.2.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.2.0
-[0.1.0]: https://github.com/verzog/moodle-mod_imageblog/releases/tag/v0.1.0
+[0.12.0]: https://github.com/verzog/moodle-mod_diagnosis/releases/tag/v0.12.0
+[0.11.0]: https://github.com/verzog/moodle-mod_diagnosis/releases/tag/v0.11.0
+[0.10.0]: https://github.com/verzog/moodle-mod_diagnosis/releases/tag/v0.10.0
+[0.9.0]: https://github.com/verzog/moodle-mod_diagnosis/releases/tag/v0.9.0
+[0.8.0]: https://github.com/verzog/moodle-mod_diagnosis/releases/tag/v0.8.0
+[0.7.0]: https://github.com/verzog/moodle-mod_diagnosis/releases/tag/v0.7.0
+[0.6.0]: https://github.com/verzog/moodle-mod_diagnosis/releases/tag/v0.6.0
+[0.5.0]: https://github.com/verzog/moodle-mod_diagnosis/releases/tag/v0.5.0
+[0.4.0]: https://github.com/verzog/moodle-mod_diagnosis/releases/tag/v0.4.0
+[0.3.0]: https://github.com/verzog/moodle-mod_diagnosis/releases/tag/v0.3.0
+[0.2.0]: https://github.com/verzog/moodle-mod_diagnosis/releases/tag/v0.2.0
+[0.1.0]: https://github.com/verzog/moodle-mod_diagnosis/releases/tag/v0.1.0

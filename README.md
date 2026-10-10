@@ -1,22 +1,19 @@
-# Image blog activity (`mod_imageblog`)
+# Diagnosis activity (`mod_diagnosis`)
 
-A Moodle **course activity** for graded clinical cases. A teacher poses a case;
-readers submit a diagnosis; when the teacher reveals the outcome, each reader
-receives a grade in the course gradebook.
+A Moodle **course activity** for clinical cases. A teacher poses a case; readers
+submit a diagnosis; the teacher marks each submission with normal Moodle grading
+and can reveal the expected outcome and an explanation.
 
-This is the companion to the site-wide
-[`local_imageblog`](https://github.com/verzog/moodle-local_imageblog) blog: the
-local plugin is the public, site-wide showcase, while this activity brings the
-clinical-case flow into a course where it can be graded and tracked. The two
-share a context-neutral scoring engine.
+It is a self-contained activity module with no external plugin dependencies.
 
-> **Status: early alpha (v0.12.0).** It installs, adds to a course, shows a
-> case, accepts a diagnosis, writes a CPD-style grade on reveal (with a
-> teacher-selected best-answer bonus), supports reader questions with teacher
+> **Status: early alpha (v0.1.0).** It installs, adds to a course, shows a case,
+> accepts a diagnosis, lets the teacher mark each submission (simple grade or a
+> rubric/marking guide) with the grade flowing to the gradebook, reveals the
+> expected diagnosis and explanation, supports reader questions with teacher
 > answers, tags cases for browsing, tracks activity completion, sends
 > notifications on key events, shows an optional interactive 360° panorama and
 > an optional interactive 3D model on the case, and backs up and restores
-> cleanly. This builds on the phased plan referenced below.
+> cleanly.
 
 ## Requirements
 
@@ -26,63 +23,38 @@ share a context-neutral scoring engine.
 
 ## What it does today
 
-1. A teacher adds an **Image blog** activity to a course, writing the case
-   prompt, the expected diagnosis and the outcome text, and setting the maximum
-   grade.
+1. A teacher adds a **Diagnosis** activity to a course, writing the case prompt,
+   the expected diagnosis and the outcome explanation, and setting the maximum
+   grade and grading method.
 2. Students open the activity and submit a diagnosis (one per student, editable
    until the outcome is revealed).
-3. The teacher reveals the outcome. Each student who submitted is graded (see
-   **Grading** below) and the grade flows to the gradebook.
+3. The teacher marks each submitted diagnosis (see **Grading** below); the grade
+   flows to the gradebook. The teacher can also reveal the expected diagnosis and
+   explanation to readers.
 4. Around that core flow, a case can also carry a question-and-answer thread,
    case tags, activity-completion tracking, event notifications, and optional
    interactive **360° panorama** and **3D model** media — each described in its
    own section below. The activity backs up and restores with the course.
 
-## Requirements note
-
-This activity depends on the **`local_imageblog`** plugin, which provides the
-shared clinical-case scoring engine (`\local_imageblog\local\scoring`). Install
-`local_imageblog` alongside it.
-
 ## Grading
 
-Grading uses the standard Moodle Grade API. Each activity instance owns one
-point-based grade item whose maximum is set on the settings form. Each instance
-chooses its grading method on the settings form (**Grading method**): the
-built-in **automatic scoring** described below, or an **advanced grading method**
-such as a **rubric** or marking guide.
+Grading uses the standard Moodle Grade API — the same **manual marking** as the
+Assignment module. Each activity instance owns one point-based grade item whose
+maximum is set on the settings form, and the teacher marks each submitted
+diagnosis from the activity page (**Grade submissions**), choosing per instance
+between:
 
-### Automatic scoring
+- **Simple direct grading** — enter a point value out of the maximum grade.
+- **An advanced grading method** — a **rubric** or **marking guide**, selected
+  via the standard **Grading method** control on the settings form and defined
+  under the activity's **Advanced grading** settings.
 
-The score is computed through the shared engine and mapped by
-`\mod_imageblog\local\grader::grade_fraction()`:
-
-- A diagnosis the teacher marks as **best** earns the **best-answer factor**,
-  overriding the checks below for that submission.
-- Otherwise, a submission matching the expected diagnosis (case- and
-  whitespace-insensitive) earns the **correct-answer factor**; any other
-  non-empty submission earns the **participation factor**.
-- The factor is scaled by the **case difficulty** multiplier (from the
-  per-instance difficulty scale) and capped at full marks.
-- `fraction × maximum grade` is written to the gradebook on reveal.
-
-The difficulty level, difficulty scale, and the three factors
-(participation / correct / best) are per-instance settings on the activity form.
-
-After revealing the outcome, a teacher sees every submitted diagnosis and can
-mark one as the best (or clear the selection); grades update automatically.
-
-### Rubric / advanced grading
-
-When the activity's grading method is set to a rubric (or any other advanced
-grading method), the automatic engine, the best-answer bonus and the
-reveal-time scoring no longer apply. Instead the teacher defines the rubric
-under the activity's **Advanced grading** settings, then marks each submitted
-diagnosis from the activity page (**Grade submissions**). Each mark is scaled to
-the activity's maximum grade and written to the gradebook as soon as it is
-saved — independent of the reveal — and the student sees their grade on the
-activity once it is awarded. Rubric fills are included in activity backup,
-restore and the privacy (export/delete) API alongside the diagnoses.
+Either way, the mark is stored on the submission and written to the gradebook as
+soon as it is saved, and the student sees their grade on the activity once it is
+awarded. Marking is independent of the reveal. If a student edits their diagnosis
+after it was marked, the stored grade is cleared so the teacher re-marks the new
+answer. Rubric fills are included in activity backup, restore and the privacy
+(export/delete) API alongside the submissions.
 
 ## Questions & answers
 
@@ -149,12 +121,6 @@ model. Readers drag to rotate, and scroll or pinch to zoom; the model is
 auto-centred and framed. The viewer and the chosen format's loader load lazily
 and degrade to a short message if they cannot start. The model and its
 companion files back up and restore with the activity.
-
-## Roadmap
-
-The design and phased plan live in the local plugin repository at
-`doc/mod_imageblog-grading-plan.md`. The phased build-out set out in that plan
-is complete; 3D models extend it with interactive volumetric cases.
 
 ## Licence
 

@@ -14,23 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace mod_imageblog;
+namespace mod_diagnosis;
 
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
-require_once($CFG->dirroot . '/mod/imageblog/lib.php');
+require_once($CFG->dirroot . '/mod/diagnosis/lib.php');
 
 /**
  * Tests for the 3D model viewer support.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers     ::imageblog_get_model_url
- * @covers     ::imageblog_model_format
- * @covers     ::imageblog_model_file_accepted
- * @covers     ::imageblog_save_model
+ * @covers     ::diagnosis_get_model_url
+ * @covers     ::diagnosis_model_format
+ * @covers     ::diagnosis_model_file_accepted
+ * @covers     ::diagnosis_save_model
  */
 final class model_test extends \advanced_testcase {
     /**
@@ -43,7 +43,7 @@ final class model_test extends \advanced_testcase {
     protected function store_model(\context_module $context, string $filename): void {
         get_file_storage()->create_file_from_string([
             'contextid' => $context->id,
-            'component' => 'mod_imageblog',
+            'component' => 'mod_diagnosis',
             'filearea' => 'model',
             'itemid' => 0,
             'filepath' => '/',
@@ -55,13 +55,13 @@ final class model_test extends \advanced_testcase {
      * The extension maps to the viewer format, with glTF and GLB sharing a loader.
      */
     public function test_model_format_from_extension(): void {
-        $this->assertSame('gltf', imageblog_model_format('scene.glb'));
-        $this->assertSame('gltf', imageblog_model_format('scene.GLTF'));
-        $this->assertSame('stl', imageblog_model_format('part.stl'));
-        $this->assertSame('ply', imageblog_model_format('scan.ply'));
-        $this->assertSame('obj', imageblog_model_format('mesh.obj'));
-        $this->assertSame('', imageblog_model_format('notes.txt'));
-        $this->assertSame('', imageblog_model_format('noextension'));
+        $this->assertSame('gltf', diagnosis_model_format('scene.glb'));
+        $this->assertSame('gltf', diagnosis_model_format('scene.GLTF'));
+        $this->assertSame('stl', diagnosis_model_format('part.stl'));
+        $this->assertSame('ply', diagnosis_model_format('scan.ply'));
+        $this->assertSame('obj', diagnosis_model_format('mesh.obj'));
+        $this->assertSame('', diagnosis_model_format('notes.txt'));
+        $this->assertSame('', diagnosis_model_format('noextension'));
     }
 
     /**
@@ -72,10 +72,10 @@ final class model_test extends \advanced_testcase {
         $accepted = ['scene.glb', 'scene.GLTF', 'part.stl', 'scan.ply', 'mesh.obj',
             'buffer.bin', 'library.mtl', 'texture.png', 'texture.jpg', 'texture.jpeg', 'texture.webp'];
         foreach ($accepted as $name) {
-            $this->assertTrue(imageblog_model_file_accepted($name), $name);
+            $this->assertTrue(diagnosis_model_file_accepted($name), $name);
         }
         foreach (['notes.txt', 'archive.zip', 'script.exe', 'noextension'] as $name) {
-            $this->assertFalse(imageblog_model_file_accepted($name), $name);
+            $this->assertFalse(diagnosis_model_file_accepted($name), $name);
         }
     }
 
@@ -86,12 +86,12 @@ final class model_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course();
-        /** @var \mod_imageblog_generator $generator */
-        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
-        $imageblog = $generator->create_instance(['course' => $course->id]);
-        $context = \context_module::instance($imageblog->cmid);
+        /** @var \mod_diagnosis_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_diagnosis');
+        $diagnosis = $generator->create_instance(['course' => $course->id]);
+        $context = \context_module::instance($diagnosis->cmid);
 
-        $this->assertNull(imageblog_get_model_url($context));
+        $this->assertNull(diagnosis_get_model_url($context));
     }
 
     /**
@@ -102,17 +102,17 @@ final class model_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course();
-        /** @var \mod_imageblog_generator $generator */
-        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
-        $imageblog = $generator->create_instance(['course' => $course->id]);
-        $context = \context_module::instance($imageblog->cmid);
+        /** @var \mod_diagnosis_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_diagnosis');
+        $diagnosis = $generator->create_instance(['course' => $course->id]);
+        $context = \context_module::instance($diagnosis->cmid);
 
         $this->store_model($context, 'heart.glb');
 
-        $url = imageblog_get_model_url($context);
+        $url = diagnosis_get_model_url($context);
         $this->assertInstanceOf(\moodle_url::class, $url);
         $out = $url->out(false);
-        $this->assertStringContainsString('/mod_imageblog/model/', $out);
+        $this->assertStringContainsString('/mod_diagnosis/model/', $out);
         $this->assertStringContainsString('heart.glb', $out);
         $this->assertStringNotContainsString('/model/0/', $out);
     }
@@ -125,21 +125,21 @@ final class model_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course();
-        /** @var \mod_imageblog_generator $generator */
-        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
-        $imageblog = $generator->create_instance(['course' => $course->id]);
-        $context = \context_module::instance($imageblog->cmid);
+        /** @var \mod_diagnosis_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_diagnosis');
+        $diagnosis = $generator->create_instance(['course' => $course->id]);
+        $context = \context_module::instance($diagnosis->cmid);
 
         // A glTF bundle: the JSON model plus its buffer and a texture.
         $this->store_model($context, 'scene.bin');
         $this->store_model($context, 'texture.png');
         $this->store_model($context, 'scene.gltf');
 
-        $main = imageblog_get_model_mainfile($context);
+        $main = diagnosis_get_model_mainfile($context);
         $this->assertNotNull($main);
         $this->assertSame('scene.gltf', $main->get_filename());
-        $this->assertSame('gltf', imageblog_model_format($main->get_filename()));
-        $this->assertStringContainsString('scene.gltf', imageblog_get_model_url($context)->out(false));
+        $this->assertSame('gltf', diagnosis_model_format($main->get_filename()));
+        $this->assertStringContainsString('scene.gltf', diagnosis_get_model_url($context)->out(false));
     }
 
     /**
@@ -150,22 +150,22 @@ final class model_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course();
-        /** @var \mod_imageblog_generator $generator */
-        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
-        $imageblog = $generator->create_instance(['course' => $course->id]);
-        $context = \context_module::instance($imageblog->cmid);
+        /** @var \mod_diagnosis_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_diagnosis');
+        $diagnosis = $generator->create_instance(['course' => $course->id]);
+        $context = \context_module::instance($diagnosis->cmid);
 
         $this->store_model($context, 'mesh.obj');
         $this->store_model($context, 'materials1.mtl');
         $this->store_model($context, 'materials2.mtl');
 
-        $this->assertSame('obj', imageblog_model_format(imageblog_get_model_mainfile($context)->get_filename()));
-        $mtls = imageblog_get_model_companion_urls($context, 'mtl');
+        $this->assertSame('obj', diagnosis_model_format(diagnosis_get_model_mainfile($context)->get_filename()));
+        $mtls = diagnosis_get_model_companion_urls($context, 'mtl');
         $this->assertCount(2, $mtls);
         $names = array_map(fn($u) => $u->out(false), $mtls);
         $this->assertStringContainsString('materials1.mtl', implode(' ', $names));
         $this->assertStringContainsString('materials2.mtl', implode(' ', $names));
-        $this->assertSame([], imageblog_get_model_companion_urls($context, 'bin'));
+        $this->assertSame([], diagnosis_get_model_companion_urls($context, 'bin'));
     }
 
     /**
@@ -175,17 +175,17 @@ final class model_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course();
-        /** @var \mod_imageblog_generator $generator */
-        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
-        $imageblog = $generator->create_instance(['course' => $course->id]);
-        $context = \context_module::instance($imageblog->cmid);
+        /** @var \mod_diagnosis_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_diagnosis');
+        $diagnosis = $generator->create_instance(['course' => $course->id]);
+        $context = \context_module::instance($diagnosis->cmid);
 
         $this->store_model($context, 'part.stl');
-        $this->assertNotNull(imageblog_get_model_url($context));
+        $this->assertNotNull(diagnosis_get_model_url($context));
 
         $data = (object) ['hasmodel' => 0, 'model_file' => 123];
-        imageblog_save_model($data, $context);
+        diagnosis_save_model($data, $context);
 
-        $this->assertNull(imageblog_get_model_url($context));
+        $this->assertNull(diagnosis_get_model_url($context));
     }
 }

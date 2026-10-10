@@ -1,5 +1,5 @@
 /* The 360 degree panorama viewer region on the case view. */
-.mod-imageblog-panorama {
+.mod-diagnosis-panorama {
     width: 100%;
     aspect-ratio: 16 / 9;
     min-height: 320px;
@@ -9,13 +9,13 @@
 }
 
 /* Shown when the viewer script cannot load; the message comes from a lang string. */
-.mod-imageblog-panorama-fallback {
+.mod-diagnosis-panorama-fallback {
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.mod-imageblog-panorama-fallback::before {
+.mod-diagnosis-panorama-fallback::before {
     content: attr(data-fallback);
     padding: 1rem;
     color: #adb5bd;
@@ -24,7 +24,7 @@
 }
 
 /* The 3D model viewer region on the case view. */
-.mod-imageblog-model {
+.mod-diagnosis-model {
     width: 100%;
     aspect-ratio: 16 / 9;
     min-height: 320px;
@@ -33,20 +33,20 @@
     overflow: hidden;
 }
 
-.mod-imageblog-model canvas {
+.mod-diagnosis-model canvas {
     display: block;
     width: 100%;
     height: 100%;
 }
 
 /* Shown when the viewer cannot load or parse the model; message from a lang string. */
-.mod-imageblog-model-fallback {
+.mod-diagnosis-model-fallback {
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.mod-imageblog-model-fallback::before {
+.mod-diagnosis-model-fallback::before {
     content: attr(data-fallback);
     padding: 1rem;
     color: #adb5bd;

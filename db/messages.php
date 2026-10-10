@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Message providers for mod_imageblog.
+ * Message providers for mod_diagnosis.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -28,12 +28,12 @@ $messageproviders = [
 
     // Sent to readers who submitted a diagnosis when the teacher reveals the outcome.
     'outcomerevealed' => [
-        'capability' => 'mod/imageblog:view',
+        'capability' => 'mod/diagnosis:view',
     ],
 
     // Sent to teachers who can answer when a reader posts a question.
     'questionposted' => [
-        'capability' => 'mod/imageblog:answerquestion',
+        'capability' => 'mod/diagnosis:answerquestion',
     ],
 
     // Sent to the asker when their question is answered.

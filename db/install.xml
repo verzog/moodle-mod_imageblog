@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/imageblog/db" VERSION="20261004" COMMENT="Database schema for mod_imageblog."
+<XMLDB PATH="mod/diagnosis/db" VERSION="20261010" COMMENT="Database schema for mod_diagnosis."
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
   <TABLES>
-    <TABLE NAME="imageblog" COMMENT="Image blog activity instances (one clinical case per instance).">
+    <TABLE NAME="diagnosis" COMMENT="Diagnosis activity instances (one clinical case per instance).">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The course this activity belongs to."/>
@@ -12,16 +12,10 @@
         <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The activity introduction."/>
         <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The format of the intro field."/>
         <FIELD NAME="casequestion" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The clinical case prompt shown to readers."/>
-        <FIELD NAME="correctdiagnosis" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="The expected diagnosis used for scoring."/>
+        <FIELD NAME="correctdiagnosis" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="The expected diagnosis, shown to readers when the outcome is revealed."/>
         <FIELD NAME="revealtext" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The outcome explanation shown after the case is revealed."/>
         <FIELD NAME="revealed" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whether the outcome has been revealed (0 or 1)."/>
         <FIELD NAME="grade" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" COMMENT="The maximum grade (points); 0 disables grading."/>
-        <FIELD NAME="casedifficulty" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="The 1-based difficulty level of this case."/>
-        <FIELD NAME="difficultyscale" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="1, 1.5, 2, 3, 5" SEQUENCE="false" COMMENT="Comma-separated difficulty multipliers, one per level."/>
-        <FIELD NAME="participationfactor" TYPE="number" LENGTH="10" DECIMALS="4" NOTNULL="true" DEFAULT="0.5" SEQUENCE="false" COMMENT="Fraction of full marks for a submitted but incorrect diagnosis."/>
-        <FIELD NAME="correctfactor" TYPE="number" LENGTH="10" DECIMALS="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Fraction of full marks for a correct diagnosis."/>
-        <FIELD NAME="bestfactor" TYPE="number" LENGTH="10" DECIMALS="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Fraction of full marks for the teacher-selected best diagnosis."/>
-        <FIELD NAME="bestdiagnosisid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The id of the diagnosis marked best, or 0 for none."/>
         <FIELD NAME="completionsubmit" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Completion rule: require the student to submit a diagnosis (0 or 1)."/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time the instance was created."/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time the instance was last modified."/>
@@ -31,28 +25,28 @@
         <KEY NAME="fk_course" TYPE="foreign" FIELDS="course" REFTABLE="course" REFFIELDS="id"/>
       </KEYS>
     </TABLE>
-    <TABLE NAME="imageblog_diagnoses" COMMENT="Reader-submitted diagnoses, one per user per instance.">
+    <TABLE NAME="diagnosis_submissions" COMMENT="Reader-submitted diagnoses, one per user per instance.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="imageblogid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The image blog instance this diagnosis belongs to."/>
+        <FIELD NAME="diagnosisid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The diagnosis instance this submission belongs to."/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The user who submitted the diagnosis."/>
         <FIELD NAME="diagnosis" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="The submitted diagnosis text."/>
+        <FIELD NAME="grade" TYPE="number" LENGTH="10" DECIMALS="5" NOTNULL="false" SEQUENCE="false" COMMENT="Points awarded by the teacher's marking (simple or advanced grading), or null when not yet marked."/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time the diagnosis was first submitted."/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time the diagnosis was last updated."/>
-        <FIELD NAME="rubricgrade" TYPE="number" LENGTH="10" DECIMALS="5" NOTNULL="false" SEQUENCE="false" COMMENT="Points awarded by the teacher's advanced grading (e.g. a rubric), or null when not graded that way."/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="fk_imageblog" TYPE="foreign" FIELDS="imageblogid" REFTABLE="imageblog" REFFIELDS="id"/>
+        <KEY NAME="fk_diagnosis" TYPE="foreign" FIELDS="diagnosisid" REFTABLE="diagnosis" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
-        <INDEX NAME="imageblogid-userid" UNIQUE="true" FIELDS="imageblogid, userid"/>
+        <INDEX NAME="diagnosisid-userid" UNIQUE="true" FIELDS="diagnosisid, userid"/>
       </INDEXES>
     </TABLE>
-    <TABLE NAME="imageblog_questions" COMMENT="Reader questions on a case and the teacher's answers.">
+    <TABLE NAME="diagnosis_questions" COMMENT="Reader questions on a case and the teacher's answers.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="imageblogid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The image blog instance this question belongs to."/>
+        <FIELD NAME="diagnosisid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The diagnosis instance this question belongs to."/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The user who asked the question."/>
         <FIELD NAME="question" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="The question text."/>
         <FIELD NAME="answer" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The answer text, or null while unanswered."/>
@@ -63,10 +57,10 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="fk_imageblog" TYPE="foreign" FIELDS="imageblogid" REFTABLE="imageblog" REFFIELDS="id"/>
+        <KEY NAME="fk_diagnosis" TYPE="foreign" FIELDS="diagnosisid" REFTABLE="diagnosis" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
-        <INDEX NAME="imageblogid" UNIQUE="false" FIELDS="imageblogid"/>
+        <INDEX NAME="diagnosisid" UNIQUE="false" FIELDS="diagnosisid"/>
       </INDEXES>
     </TABLE>
   </TABLES>

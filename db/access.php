@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Capability definitions for mod_imageblog.
+ * Capability definitions for mod_diagnosis.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -26,7 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $capabilities = [
 
-    'mod/imageblog:addinstance' => [
+    'mod/diagnosis:addinstance' => [
         'riskbitmask' => RISK_XSS,
         'captype' => 'write',
         'contextlevel' => CONTEXT_COURSE,
@@ -37,7 +37,7 @@ $capabilities = [
         'clonepermissionsfrom' => 'moodle/course:manageactivities',
     ],
 
-    'mod/imageblog:view' => [
+    'mod/diagnosis:view' => [
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => [
@@ -48,7 +48,7 @@ $capabilities = [
         ],
     ],
 
-    'mod/imageblog:submit' => [
+    'mod/diagnosis:submit' => [
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => [
@@ -56,7 +56,7 @@ $capabilities = [
         ],
     ],
 
-    'mod/imageblog:reveal' => [
+    'mod/diagnosis:reveal' => [
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => [
@@ -65,7 +65,7 @@ $capabilities = [
         ],
     ],
 
-    'mod/imageblog:askquestion' => [
+    'mod/diagnosis:askquestion' => [
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => [
@@ -76,7 +76,7 @@ $capabilities = [
         ],
     ],
 
-    'mod/imageblog:answerquestion' => [
+    'mod/diagnosis:answerquestion' => [
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => [

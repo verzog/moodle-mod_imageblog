@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace mod_imageblog;
+namespace mod_diagnosis;
 
 use backup;
 use backup_controller;
@@ -25,16 +25,16 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 require_once($CFG->dirroot . '/backup/util/includes/backup_includes.php');
 require_once($CFG->dirroot . '/backup/util/includes/restore_includes.php');
-require_once($CFG->dirroot . '/mod/imageblog/lib.php');
+require_once($CFG->dirroot . '/mod/diagnosis/lib.php');
 
 /**
- * Backup and restore tests for mod_imageblog.
+ * Backup and restore tests for mod_diagnosis.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers     \backup_imageblog_activity_structure_step
- * @covers     \restore_imageblog_activity_structure_step
+ * @covers     \backup_diagnosis_activity_structure_step
+ * @covers     \restore_diagnosis_activity_structure_step
  */
 final class backup_restore_test extends \advanced_testcase {
     /**
@@ -53,42 +53,40 @@ final class backup_restore_test extends \advanced_testcase {
         $course = $this->getDataGenerator()->create_course();
         $student = $this->getDataGenerator()->create_and_enrol($course, 'student');
 
-        /** @var \mod_imageblog_generator $generator */
-        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
-        $imageblog = $generator->create_instance(['course' => $course->id, 'revealed' => 1]);
+        /** @var \mod_diagnosis_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_diagnosis');
+        $diagnosis = $generator->create_instance(['course' => $course->id, 'revealed' => 1]);
 
-        // Record a diagnosis for the student and mark it as the best answer.
+        // Record a marked diagnosis for the student.
         $now = time();
-        $diagnosisid = $DB->insert_record('imageblog_diagnoses', (object) [
-            'imageblogid' => $imageblog->id,
+        $submissionid = $DB->insert_record('diagnosis_submissions', (object) [
+            'diagnosisid' => $diagnosis->id,
             'userid' => $student->id,
             'diagnosis' => 'pneumonia',
-            'rubricgrade' => 42.5,
+            'grade' => 42.5,
             'timecreated' => $now,
             'timemodified' => $now,
         ]);
-        $DB->set_field('imageblog', 'bestdiagnosisid', $diagnosisid, ['id' => $imageblog->id]);
 
         // Back up the activity with user data, then restore it into a new course.
-        $backupid = $this->backup_activity($imageblog->cmid, $USER->id);
+        $backupid = $this->backup_activity($diagnosis->cmid, $USER->id);
         $targetcourse = $this->getDataGenerator()->create_course();
         $this->restore_into_course($backupid, $targetcourse->id, $USER->id);
 
-        $restored = $DB->get_record('imageblog', ['course' => $targetcourse->id], '*', MUST_EXIST);
-        $restoreddiagnosis = $DB->get_record(
-            'imageblog_diagnoses',
-            ['imageblogid' => $restored->id],
+        $restored = $DB->get_record('diagnosis', ['course' => $targetcourse->id], '*', MUST_EXIST);
+        $restoredsubmission = $DB->get_record(
+            'diagnosis_submissions',
+            ['diagnosisid' => $restored->id],
             '*',
             MUST_EXIST
         );
 
-        // The best-answer reference points at the restored diagnosis, not the original.
-        $this->assertEquals((int) $restoreddiagnosis->id, (int) $restored->bestdiagnosisid);
-        $this->assertNotEquals((int) $diagnosisid, (int) $restored->bestdiagnosisid);
-        $this->assertSame('pneumonia', $restoreddiagnosis->diagnosis);
-        $this->assertEquals((int) $student->id, (int) $restoreddiagnosis->userid);
-        // The stored advanced-grading points survive the round trip.
-        $this->assertEqualsWithDelta(42.5, (float) $restoreddiagnosis->rubricgrade, 0.001);
+        // The submission restores into the new instance, remapped to a new id.
+        $this->assertNotEquals((int) $submissionid, (int) $restoredsubmission->id);
+        $this->assertSame('pneumonia', $restoredsubmission->diagnosis);
+        $this->assertEquals((int) $student->id, (int) $restoredsubmission->userid);
+        // The stored grade survives the round trip.
+        $this->assertEqualsWithDelta(42.5, (float) $restoredsubmission->grade, 0.001);
     }
 
     /**
@@ -105,13 +103,13 @@ final class backup_restore_test extends \advanced_testcase {
         $student = $this->getDataGenerator()->create_and_enrol($course, 'student');
         $teacher = $this->getDataGenerator()->create_and_enrol($course, 'editingteacher');
 
-        /** @var \mod_imageblog_generator $generator */
-        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
-        $imageblog = $generator->create_instance(['course' => $course->id]);
+        /** @var \mod_diagnosis_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_diagnosis');
+        $diagnosis = $generator->create_instance(['course' => $course->id]);
 
         $now = time();
-        $answeredid = $DB->insert_record('imageblog_questions', (object) [
-            'imageblogid' => $imageblog->id,
+        $answeredid = $DB->insert_record('diagnosis_questions', (object) [
+            'diagnosisid' => $diagnosis->id,
             'userid' => $student->id,
             'question' => 'Is the lesion calcified?',
             'answer' => 'Yes, there is dense calcification.',
@@ -120,8 +118,8 @@ final class backup_restore_test extends \advanced_testcase {
             'timemodified' => $now,
             'timeanswered' => $now,
         ]);
-        $DB->insert_record('imageblog_questions', (object) [
-            'imageblogid' => $imageblog->id,
+        $DB->insert_record('diagnosis_questions', (object) [
+            'diagnosisid' => $diagnosis->id,
             'userid' => $student->id,
             'question' => 'What is the patient age?',
             'answer' => null,
@@ -131,12 +129,12 @@ final class backup_restore_test extends \advanced_testcase {
             'timeanswered' => 0,
         ]);
 
-        $backupid = $this->backup_activity($imageblog->cmid, $USER->id);
+        $backupid = $this->backup_activity($diagnosis->cmid, $USER->id);
         $targetcourse = $this->getDataGenerator()->create_course();
         $this->restore_into_course($backupid, $targetcourse->id, $USER->id);
 
-        $restored = $DB->get_record('imageblog', ['course' => $targetcourse->id], '*', MUST_EXIST);
-        $questions = $DB->get_records('imageblog_questions', ['imageblogid' => $restored->id], 'timecreated ASC');
+        $restored = $DB->get_record('diagnosis', ['course' => $targetcourse->id], '*', MUST_EXIST);
+        $questions = $DB->get_records('diagnosis_questions', ['diagnosisid' => $restored->id], 'timecreated ASC');
         $this->assertCount(2, $questions);
 
         $answered = array_filter($questions, fn($q) => trim((string) $q->answer) !== '');
@@ -164,22 +162,22 @@ final class backup_restore_test extends \advanced_testcase {
 
         $course = $this->getDataGenerator()->create_course();
 
-        /** @var \mod_imageblog_generator $generator */
-        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
-        $imageblog = $generator->create_instance([
+        /** @var \mod_diagnosis_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_diagnosis');
+        $diagnosis = $generator->create_instance([
             'course' => $course->id,
             'casetags' => ['Chest', 'Pneumonia'],
         ]);
 
-        $tags = \core_tag_tag::get_item_tags_array('mod_imageblog', 'imageblog', $imageblog->id);
+        $tags = \core_tag_tag::get_item_tags_array('mod_diagnosis', 'diagnosis', $diagnosis->id);
         $this->assertEqualsCanonicalizing(['Chest', 'Pneumonia'], array_values($tags));
 
-        $backupid = $this->backup_activity($imageblog->cmid, $USER->id);
+        $backupid = $this->backup_activity($diagnosis->cmid, $USER->id);
         $targetcourse = $this->getDataGenerator()->create_course();
         $this->restore_into_course($backupid, $targetcourse->id, $USER->id);
 
-        $restored = $DB->get_record('imageblog', ['course' => $targetcourse->id], '*', MUST_EXIST);
-        $restoredtags = \core_tag_tag::get_item_tags_array('mod_imageblog', 'imageblog', $restored->id);
+        $restored = $DB->get_record('diagnosis', ['course' => $targetcourse->id], '*', MUST_EXIST);
+        $restoredtags = \core_tag_tag::get_item_tags_array('mod_diagnosis', 'diagnosis', $restored->id);
         $this->assertEqualsCanonicalizing(['Chest', 'Pneumonia'], array_values($restoredtags));
     }
 
@@ -195,29 +193,29 @@ final class backup_restore_test extends \advanced_testcase {
 
         $course = $this->getDataGenerator()->create_course();
 
-        /** @var \mod_imageblog_generator $generator */
-        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
-        $imageblog = $generator->create_instance(['course' => $course->id]);
-        $context = \context_module::instance($imageblog->cmid);
+        /** @var \mod_diagnosis_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_diagnosis');
+        $diagnosis = $generator->create_instance(['course' => $course->id]);
+        $context = \context_module::instance($diagnosis->cmid);
 
         get_file_storage()->create_file_from_string([
             'contextid' => $context->id,
-            'component' => 'mod_imageblog',
+            'component' => 'mod_diagnosis',
             'filearea' => 'panorama',
             'itemid' => 0,
             'filepath' => '/',
             'filename' => 'pano.jpg',
         ], 'fake-equirectangular-bytes');
 
-        $backupid = $this->backup_activity($imageblog->cmid, $USER->id);
+        $backupid = $this->backup_activity($diagnosis->cmid, $USER->id);
         $targetcourse = $this->getDataGenerator()->create_course();
         $this->restore_into_course($backupid, $targetcourse->id, $USER->id);
 
-        $restored = $DB->get_record('imageblog', ['course' => $targetcourse->id], '*', MUST_EXIST);
-        $restoredcm = get_coursemodule_from_instance('imageblog', $restored->id, $targetcourse->id, false, MUST_EXIST);
+        $restored = $DB->get_record('diagnosis', ['course' => $targetcourse->id], '*', MUST_EXIST);
+        $restoredcm = get_coursemodule_from_instance('diagnosis', $restored->id, $targetcourse->id, false, MUST_EXIST);
         $restoredcontext = \context_module::instance($restoredcm->id);
 
-        $url = imageblog_get_panorama_url($restoredcontext);
+        $url = diagnosis_get_panorama_url($restoredcontext);
         $this->assertInstanceOf(\moodle_url::class, $url);
         $this->assertStringContainsString('pano.jpg', $url->out(false));
     }
@@ -234,15 +232,15 @@ final class backup_restore_test extends \advanced_testcase {
 
         $course = $this->getDataGenerator()->create_course();
 
-        /** @var \mod_imageblog_generator $generator */
-        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
-        $imageblog = $generator->create_instance(['course' => $course->id]);
-        $context = \context_module::instance($imageblog->cmid);
+        /** @var \mod_diagnosis_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_diagnosis');
+        $diagnosis = $generator->create_instance(['course' => $course->id]);
+        $context = \context_module::instance($diagnosis->cmid);
 
         $fs = get_file_storage();
         $base = [
             'contextid' => $context->id,
-            'component' => 'mod_imageblog',
+            'component' => 'mod_diagnosis',
             'filearea' => 'model',
             'itemid' => 0,
             'filepath' => '/',
@@ -251,20 +249,20 @@ final class backup_restore_test extends \advanced_testcase {
         $fs->create_file_from_string(['filename' => 'scene.gltf'] + $base, '{"asset":{"version":"2.0"}}');
         $fs->create_file_from_string(['filename' => 'scene.bin'] + $base, 'fake-buffer-bytes');
 
-        $backupid = $this->backup_activity($imageblog->cmid, $USER->id);
+        $backupid = $this->backup_activity($diagnosis->cmid, $USER->id);
         $targetcourse = $this->getDataGenerator()->create_course();
         $this->restore_into_course($backupid, $targetcourse->id, $USER->id);
 
-        $restored = $DB->get_record('imageblog', ['course' => $targetcourse->id], '*', MUST_EXIST);
-        $restoredcm = get_coursemodule_from_instance('imageblog', $restored->id, $targetcourse->id, false, MUST_EXIST);
+        $restored = $DB->get_record('diagnosis', ['course' => $targetcourse->id], '*', MUST_EXIST);
+        $restoredcm = get_coursemodule_from_instance('diagnosis', $restored->id, $targetcourse->id, false, MUST_EXIST);
         $restoredcontext = \context_module::instance($restoredcm->id);
 
         // The main model resolves, and the companion buffer rode along with it.
-        $url = imageblog_get_model_url($restoredcontext);
+        $url = diagnosis_get_model_url($restoredcontext);
         $this->assertInstanceOf(\moodle_url::class, $url);
         $this->assertStringContainsString('scene.gltf', $url->out(false));
         $this->assertTrue(
-            $fs->file_exists($restoredcontext->id, 'mod_imageblog', 'model', 0, '/', 'scene.bin')
+            $fs->file_exists($restoredcontext->id, 'mod_diagnosis', 'model', 0, '/', 'scene.bin')
         );
     }
 

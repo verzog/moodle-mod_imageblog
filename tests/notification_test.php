@@ -14,21 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace mod_imageblog;
+namespace mod_diagnosis;
 
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
-require_once($CFG->dirroot . '/mod/imageblog/lib.php');
+require_once($CFG->dirroot . '/mod/diagnosis/lib.php');
 
 /**
  * Tests for the activity's message notifications.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers     \imageblog_notify_outcome_revealed
- * @covers     \imageblog_notify_question_answered
+ * @covers     \diagnosis_notify_outcome_revealed
+ * @covers     \diagnosis_notify_question_answered
  */
 final class notification_test extends \advanced_testcase {
     /**
@@ -43,15 +43,15 @@ final class notification_test extends \advanced_testcase {
         $student = $this->getDataGenerator()->create_and_enrol($course, 'student');
         $teacher = $this->getDataGenerator()->create_and_enrol($course, 'editingteacher');
 
-        /** @var \mod_imageblog_generator $generator */
-        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
-        $imageblog = $generator->create_instance(['course' => $course->id]);
-        $cm = get_coursemodule_from_instance('imageblog', $imageblog->id);
+        /** @var \mod_diagnosis_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_diagnosis');
+        $diagnosis = $generator->create_instance(['course' => $course->id]);
+        $cm = get_coursemodule_from_instance('diagnosis', $diagnosis->id);
         $context = \context_module::instance($cm->id);
 
         $now = time();
-        $DB->insert_record('imageblog_diagnoses', (object) [
-            'imageblogid' => $imageblog->id,
+        $DB->insert_record('diagnosis_submissions', (object) [
+            'diagnosisid' => $diagnosis->id,
             'userid' => $student->id,
             'diagnosis' => 'pneumonia',
             'timecreated' => $now,
@@ -59,14 +59,14 @@ final class notification_test extends \advanced_testcase {
         ]);
 
         $sink = $this->redirectMessages();
-        imageblog_notify_outcome_revealed($imageblog, $cm, $context, $teacher);
+        diagnosis_notify_outcome_revealed($diagnosis, $cm, $context, $teacher);
         $messages = $sink->get_messages();
         $sink->close();
 
         $this->assertCount(1, $messages);
         $this->assertEquals('outcomerevealed', $messages[0]->eventtype);
         $this->assertEquals((int) $student->id, (int) $messages[0]->useridto);
-        $this->assertEquals('mod_imageblog', $messages[0]->component);
+        $this->assertEquals('mod_diagnosis', $messages[0]->component);
     }
 
     /**
@@ -81,14 +81,14 @@ final class notification_test extends \advanced_testcase {
         $student = $this->getDataGenerator()->create_and_enrol($course, 'student');
         $teacher = $this->getDataGenerator()->create_and_enrol($course, 'editingteacher');
 
-        /** @var \mod_imageblog_generator $generator */
-        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
-        $imageblog = $generator->create_instance(['course' => $course->id]);
-        $cm = get_coursemodule_from_instance('imageblog', $imageblog->id);
+        /** @var \mod_diagnosis_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_diagnosis');
+        $diagnosis = $generator->create_instance(['course' => $course->id]);
+        $cm = get_coursemodule_from_instance('diagnosis', $diagnosis->id);
 
         $now = time();
-        $questionid = $DB->insert_record('imageblog_questions', (object) [
-            'imageblogid' => $imageblog->id,
+        $questionid = $DB->insert_record('diagnosis_questions', (object) [
+            'diagnosisid' => $diagnosis->id,
             'userid' => $student->id,
             'question' => 'Is it calcified?',
             'answer' => 'Yes.',
@@ -97,10 +97,10 @@ final class notification_test extends \advanced_testcase {
             'timemodified' => $now,
             'timeanswered' => $now,
         ]);
-        $question = $DB->get_record('imageblog_questions', ['id' => $questionid], '*', MUST_EXIST);
+        $question = $DB->get_record('diagnosis_questions', ['id' => $questionid], '*', MUST_EXIST);
 
         $sink = $this->redirectMessages();
-        imageblog_notify_question_answered($imageblog, $cm, $question, $teacher);
+        diagnosis_notify_question_answered($diagnosis, $cm, $question, $teacher);
         $messages = $sink->get_messages();
         $sink->close();
 

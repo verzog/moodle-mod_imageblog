@@ -15,21 +15,21 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Restore task for mod_imageblog.
+ * Restore task for mod_diagnosis.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot . '/mod/imageblog/backup/moodle2/restore_imageblog_stepslib.php');
+require_once($CFG->dirroot . '/mod/diagnosis/backup/moodle2/restore_diagnosis_stepslib.php');
 
 /**
- * Provides the steps to perform one complete restore of a mod_imageblog instance.
+ * Provides the steps to perform one complete restore of a mod_diagnosis instance.
  */
-class restore_imageblog_activity_task extends restore_activity_task {
+class restore_diagnosis_activity_task extends restore_activity_task {
     /**
      * Define particular settings this activity can have.
      *
@@ -45,7 +45,7 @@ class restore_imageblog_activity_task extends restore_activity_task {
      * @return void
      */
     protected function define_my_steps() {
-        $this->add_step(new restore_imageblog_activity_structure_step('imageblog_structure', 'imageblog.xml'));
+        $this->add_step(new restore_diagnosis_activity_structure_step('diagnosis_structure', 'diagnosis.xml'));
     }
 
     /**
@@ -56,7 +56,7 @@ class restore_imageblog_activity_task extends restore_activity_task {
     public static function define_decode_contents() {
         $contents = [];
 
-        $contents[] = new restore_decode_content('imageblog', ['intro', 'casequestion', 'revealtext'], 'imageblog');
+        $contents[] = new restore_decode_content('diagnosis', ['intro', 'casequestion', 'revealtext'], 'diagnosis');
 
         return $contents;
     }
@@ -69,8 +69,8 @@ class restore_imageblog_activity_task extends restore_activity_task {
     public static function define_decode_rules() {
         $rules = [];
 
-        $rules[] = new restore_decode_rule('IMAGEBLOGVIEWBYID', '/mod/imageblog/view.php?id=$1', 'course_module');
-        $rules[] = new restore_decode_rule('IMAGEBLOGINDEX', '/mod/imageblog/index.php?id=$1', 'course');
+        $rules[] = new restore_decode_rule('DIAGNOSISVIEWBYID', '/mod/diagnosis/view.php?id=$1', 'course_module');
+        $rules[] = new restore_decode_rule('DIAGNOSISINDEX', '/mod/diagnosis/index.php?id=$1', 'course');
 
         return $rules;
     }

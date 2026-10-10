@@ -15,21 +15,21 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Backup task for mod_imageblog.
+ * Backup task for mod_diagnosis.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot . '/mod/imageblog/backup/moodle2/backup_imageblog_stepslib.php');
+require_once($CFG->dirroot . '/mod/diagnosis/backup/moodle2/backup_diagnosis_stepslib.php');
 
 /**
- * Provides the steps to perform one complete backup of a mod_imageblog instance.
+ * Provides the steps to perform one complete backup of a mod_diagnosis instance.
  */
-class backup_imageblog_activity_task extends backup_activity_task {
+class backup_diagnosis_activity_task extends backup_activity_task {
     /**
      * Define particular settings this activity can have.
      *
@@ -45,7 +45,7 @@ class backup_imageblog_activity_task extends backup_activity_task {
      * @return void
      */
     protected function define_my_steps() {
-        $this->add_step(new backup_imageblog_activity_structure_step('imageblog_structure', 'imageblog.xml'));
+        $this->add_step(new backup_diagnosis_activity_structure_step('diagnosis_structure', 'diagnosis.xml'));
     }
 
     /**
@@ -59,13 +59,13 @@ class backup_imageblog_activity_task extends backup_activity_task {
 
         $base = preg_quote($CFG->wwwroot, '/');
 
-        // Link to the list of image blogs in a course: index.php?id=COURSEID.
-        $search = '/(' . $base . '\/mod\/imageblog\/index\.php\?id\=)([0-9]+)/';
-        $content = preg_replace($search, '$@IMAGEBLOGINDEX*$2@$', $content);
+        // Link to the list of diagnoses in a course: index.php?id=COURSEID.
+        $search = '/(' . $base . '\/mod\/diagnosis\/index\.php\?id\=)([0-9]+)/';
+        $content = preg_replace($search, '$@DIAGNOSISINDEX*$2@$', $content);
 
-        // Link to one image blog: view.php?id=CMID.
-        $search = '/(' . $base . '\/mod\/imageblog\/view\.php\?id\=)([0-9]+)/';
-        $content = preg_replace($search, '$@IMAGEBLOGVIEWBYID*$2@$', $content);
+        // Link to one diagnosis: view.php?id=CMID.
+        $search = '/(' . $base . '\/mod\/diagnosis\/view\.php\?id\=)([0-9]+)/';
+        $content = preg_replace($search, '$@DIAGNOSISVIEWBYID*$2@$', $content);
 
         return $content;
     }

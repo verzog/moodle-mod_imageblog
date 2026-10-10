@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace mod_imageblog\form;
+namespace mod_diagnosis\form;
 
 /**
  * Form for a reader to ask a question about a case.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -35,11 +35,11 @@ class question_form extends \moodleform {
         $mform->addElement('hidden', 'id');
         $mform->setType('id', PARAM_INT);
 
-        $mform->addElement('textarea', 'question', get_string('question', 'mod_imageblog'), ['rows' => 3, 'cols' => 60]);
+        $mform->addElement('textarea', 'question', get_string('question', 'mod_diagnosis'), ['rows' => 3, 'cols' => 60]);
         $mform->setType('question', PARAM_TEXT);
         $mform->addRule('question', get_string('required'), 'required', null, 'client');
 
-        $this->add_action_buttons(false, get_string('askquestion', 'mod_imageblog'));
+        $this->add_action_buttons(false, get_string('askquestion', 'mod_diagnosis'));
     }
 
     /**

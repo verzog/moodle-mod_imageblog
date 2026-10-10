@@ -15,17 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Backup structure step for mod_imageblog.
+ * Backup structure step for mod_diagnosis.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 /**
- * Define the complete image blog structure for backup, with file and id annotations.
+ * Define the complete diagnosis structure for backup, with file and id annotations.
  */
-class backup_imageblog_activity_structure_step extends backup_activity_structure_step {
+class backup_diagnosis_activity_structure_step extends backup_activity_structure_step {
     /**
      * Define the structure of the resulting activity backup.
      *
@@ -35,16 +35,14 @@ class backup_imageblog_activity_structure_step extends backup_activity_structure
         // Diagnoses are per-user data, so only back them up when user info is included.
         $userinfo = $this->get_setting_value('userinfo');
 
-        $imageblog = new backup_nested_element('imageblog', ['id'], [
+        $diagnosis = new backup_nested_element('diagnosis', ['id'], [
             'name', 'intro', 'introformat', 'casequestion', 'correctdiagnosis',
-            'revealtext', 'revealed', 'grade', 'casedifficulty', 'difficultyscale',
-            'participationfactor', 'correctfactor', 'bestfactor', 'bestdiagnosisid',
-            'completionsubmit', 'timecreated', 'timemodified',
+            'revealtext', 'revealed', 'grade', 'completionsubmit', 'timecreated', 'timemodified',
         ]);
 
-        $diagnoses = new backup_nested_element('diagnoses');
-        $diagnosis = new backup_nested_element('diagnosis', ['id'], [
-            'userid', 'diagnosis', 'rubricgrade', 'timecreated', 'timemodified',
+        $submissions = new backup_nested_element('submissions');
+        $submission = new backup_nested_element('submission', ['id'], [
+            'userid', 'diagnosis', 'grade', 'timecreated', 'timemodified',
         ]);
 
         $questions = new backup_nested_element('questions');
@@ -56,48 +54,48 @@ class backup_imageblog_activity_structure_step extends backup_activity_structure
         $tag = new backup_nested_element('tag', ['id'], ['itemid', 'rawname']);
 
         // Build the tree.
-        $imageblog->add_child($diagnoses);
-        $diagnoses->add_child($diagnosis);
-        $imageblog->add_child($questions);
+        $diagnosis->add_child($submissions);
+        $submissions->add_child($submission);
+        $diagnosis->add_child($questions);
         $questions->add_child($question);
-        $imageblog->add_child($tags);
+        $diagnosis->add_child($tags);
         $tags->add_child($tag);
 
         // Define the data sources.
-        $imageblog->set_source_table('imageblog', ['id' => backup::VAR_ACTIVITYID]);
+        $diagnosis->set_source_table('diagnosis', ['id' => backup::VAR_ACTIVITYID]);
 
         if ($userinfo) {
-            $diagnosis->set_source_table('imageblog_diagnoses', ['imageblogid' => backup::VAR_PARENTID]);
-            $question->set_source_table('imageblog_questions', ['imageblogid' => backup::VAR_PARENTID]);
+            $submission->set_source_table('diagnosis_submissions', ['diagnosisid' => backup::VAR_PARENTID]);
+            $question->set_source_table('diagnosis_questions', ['diagnosisid' => backup::VAR_PARENTID]);
         }
 
         // Case tags are instance content, so back them up regardless of user info.
-        if (core_tag_tag::is_enabled('mod_imageblog', 'imageblog')) {
+        if (core_tag_tag::is_enabled('mod_diagnosis', 'diagnosis')) {
             $tag->set_source_sql('SELECT t.id, ti.itemid, t.rawname
                                     FROM {tag} t
                                     JOIN {tag_instance} ti ON ti.tagid = t.id
                                    WHERE ti.itemtype = ?
                                      AND ti.component = ?
                                      AND ti.contextid = ?', [
-                backup_helper::is_sqlparam('imageblog'),
-                backup_helper::is_sqlparam('mod_imageblog'),
+                backup_helper::is_sqlparam('diagnosis'),
+                backup_helper::is_sqlparam('mod_diagnosis'),
                 backup::VAR_CONTEXTID,
             ]);
         }
 
-        // Define id annotations: each diagnosis belongs to a user, and a question
+        // Define id annotations: each submission belongs to a user, and a question
         // belongs to its asker and (once answered) the teacher who answered it.
-        $diagnosis->annotate_ids('user', 'userid');
+        $submission->annotate_ids('user', 'userid');
         $question->annotate_ids('user', 'userid');
         $question->annotate_ids('user', 'answeredby');
 
         // Define file annotations: the activity intro may embed files, and the
         // case may carry an optional 360 degree panorama image and an optional
         // 3D model (both at itemid 0).
-        $imageblog->annotate_files('mod_imageblog', 'intro', null);
-        $imageblog->annotate_files('mod_imageblog', 'panorama', null);
-        $imageblog->annotate_files('mod_imageblog', 'model', null);
+        $diagnosis->annotate_files('mod_diagnosis', 'intro', null);
+        $diagnosis->annotate_files('mod_diagnosis', 'panorama', null);
+        $diagnosis->annotate_files('mod_diagnosis', 'model', null);
 
-        return $this->prepare_activity_structure($imageblog);
+        return $this->prepare_activity_structure($diagnosis);
     }
 }

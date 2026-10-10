@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * List all image blog activities in a course.
+ * List all diagnosis activities in a course.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -31,23 +31,23 @@ require_course_login($course);
 
 $context = context_course::instance($course->id);
 
-$PAGE->set_url('/mod/imageblog/index.php', ['id' => $id]);
+$PAGE->set_url('/mod/diagnosis/index.php', ['id' => $id]);
 $PAGE->set_title(format_string($course->fullname));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('modulenameplural', 'mod_imageblog'));
+echo $OUTPUT->heading(get_string('modulenameplural', 'mod_diagnosis'));
 
-$instances = get_all_instances_in_course('imageblog', $course);
+$instances = get_all_instances_in_course('diagnosis', $course);
 if (empty($instances)) {
-    notice(get_string('noinstances', 'mod_imageblog'), new moodle_url('/course/view.php', ['id' => $course->id]));
+    notice(get_string('noinstances', 'mod_diagnosis'), new moodle_url('/course/view.php', ['id' => $course->id]));
 }
 
 $table = new html_table();
 $table->head = [get_string('name')];
 foreach ($instances as $instance) {
-    $url = new moodle_url('/mod/imageblog/view.php', ['id' => $instance->coursemodule]);
+    $url = new moodle_url('/mod/diagnosis/view.php', ['id' => $instance->coursemodule]);
     $name = format_string($instance->name);
     if (!$instance->visible) {
         $name = html_writer::span($name, 'dimmed');
