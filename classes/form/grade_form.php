@@ -42,6 +42,11 @@ class grade_form extends \moodleform {
         $mform->addElement('hidden', 'userid');
         $mform->setType('userid', PARAM_INT);
 
+        // The submission's timemodified when the form was rendered, so the save
+        // can detect a student edit that happened in the meantime.
+        $mform->addElement('hidden', 'submissiontime');
+        $mform->setType('submissiontime', PARAM_INT);
+
         if ($gradinginstance) {
             // Advanced grading: render the method's control (rubric, marking guide).
             $mform->addElement(
@@ -75,9 +80,12 @@ class grade_form extends \moodleform {
 
         // Only the simple-grading branch has a 'grade' text field to validate.
         if (array_key_exists('grade', $data) && trim((string) $data['grade']) !== '') {
-            $value = unformat_float($data['grade']);
+            // Strict parse: unformat_float() returns false for malformed input
+            // (e.g. "abc", "42oops") only when its strict flag is set; without it
+            // such values are silently coerced to a number.
+            $value = unformat_float($data['grade'], true);
             $maxgrade = $this->_customdata['maxgrade'] ?? 0;
-            if ($value === false || $value === null || !is_numeric($value)) {
+            if ($value === false) {
                 $errors['grade'] = get_string('gradenotnumeric', 'mod_diagnosis');
             } else if ($value < 0 || $value > $maxgrade) {
                 $errors['grade'] = get_string('gradeoutofrange', 'mod_diagnosis', $maxgrade);

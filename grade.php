@@ -58,6 +58,16 @@ if (empty($instance->grade) || $instance->grade <= 0) {
 
 $gradeduser = \core_user::get_user($userid, '*', MUST_EXIST);
 
+// Do not mark when the gradebook entry is locked or manually overridden: the
+// Grade API would not replace the authoritative value, so a stored local mark
+// would diverge from the gradebook (as Moodle's Assignment guards against).
+$gradinginfo = grade_get_grades($course->id, 'mod', 'diagnosis', $instance->id, $userid);
+$gradingdisabled = false;
+if (!empty($gradinginfo->items[0]->grades[$userid])) {
+    $usergrade = $gradinginfo->items[0]->grades[$userid];
+    $gradingdisabled = !empty($usergrade->locked) || !empty($usergrade->overridden);
+}
+
 // An advanced grading method (rubric, marking guide) may be active; otherwise
 // the teacher enters a simple point grade.
 $gradingmanager = get_grading_manager($context, 'mod_diagnosis', 'submissions');
@@ -72,7 +82,7 @@ $formavailable = true;
 if ($controller) {
     $formavailable = $controller->is_form_available();
 }
-if ($formavailable) {
+if (!$gradingdisabled && $formavailable) {
     $customdata = ['maxgrade' => $instance->grade];
     if ($controller) {
         $instanceid = optional_param('advancedgradinginstanceid', 0, PARAM_INT);
@@ -82,7 +92,7 @@ if ($formavailable) {
     }
 
     $mform = new \mod_diagnosis\form\grade_form($pageurl->out(false), $customdata);
-    $setdata = ['id' => $cm->id, 'userid' => $userid];
+    $setdata = ['id' => $cm->id, 'userid' => $userid, 'submissiontime' => $submission->timemodified];
     if ($gradinginstance) {
         $setdata['advancedgradinginstanceid'] = $gradinginstance->get_id();
     } else if ($submission->grade !== null) {
@@ -93,10 +103,15 @@ if ($formavailable) {
     if ($mform->is_cancelled()) {
         redirect($returnurl);
     } else if ($data = $mform->get_data()) {
+        // Refuse the save if the student edited their diagnosis after this form
+        // was rendered: the mark would attach to text the teacher never reviewed.
+        if ((int) $data->submissiontime !== (int) $submission->timemodified) {
+            redirect($returnurl, get_string('submissionchanged', 'mod_diagnosis'), null, \core\output\notification::NOTIFY_WARNING);
+        }
         if ($gradinginstance) {
             $submission->grade = $gradinginstance->submit_and_get_grade($data->advancedgrading, $submission->id);
         } else {
-            $submission->grade = (trim((string) $data->grade) === '') ? null : unformat_float($data->grade);
+            $submission->grade = (trim((string) $data->grade) === '') ? null : unformat_float($data->grade, true);
         }
         $submission->timemodified = time();
         $DB->update_record('diagnosis_submissions', $submission);
@@ -108,7 +123,11 @@ if ($formavailable) {
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('gradeuser', 'mod_diagnosis', fullname($gradeduser)));
 
-if (!$formavailable) {
+if ($gradingdisabled) {
+    // The gradebook entry is locked or overridden, so marking here is disabled.
+    echo $OUTPUT->notification(get_string('gradelocked', 'mod_diagnosis'), \core\output\notification::NOTIFY_WARNING);
+    echo $OUTPUT->box(s($submission->diagnosis), 'generalbox');
+} else if (!$formavailable) {
     // An advanced method is selected but its form (e.g. the rubric) is not defined yet.
     echo $controller->form_unavailable_notification();
 } else {
