@@ -39,6 +39,7 @@
         <FIELD NAME="diagnosis" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="The submitted diagnosis text."/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time the diagnosis was first submitted."/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time the diagnosis was last updated."/>
+        <FIELD NAME="rubricgrade" TYPE="number" LENGTH="10" DECIMALS="5" NOTNULL="false" SEQUENCE="false" COMMENT="Points awarded by the teacher's advanced grading (e.g. a rubric), or null when not graded that way."/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

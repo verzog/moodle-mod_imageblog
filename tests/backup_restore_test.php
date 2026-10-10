@@ -63,6 +63,7 @@ final class backup_restore_test extends \advanced_testcase {
             'imageblogid' => $imageblog->id,
             'userid' => $student->id,
             'diagnosis' => 'pneumonia',
+            'rubricgrade' => 42.5,
             'timecreated' => $now,
             'timemodified' => $now,
         ]);
@@ -86,6 +87,8 @@ final class backup_restore_test extends \advanced_testcase {
         $this->assertNotEquals((int) $diagnosisid, (int) $restored->bestdiagnosisid);
         $this->assertSame('pneumonia', $restoreddiagnosis->diagnosis);
         $this->assertEquals((int) $student->id, (int) $restoreddiagnosis->userid);
+        // The stored advanced-grading points survive the round trip.
+        $this->assertEqualsWithDelta(42.5, (float) $restoreddiagnosis->rubricgrade, 0.001);
     }
 
     /**

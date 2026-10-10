@@ -49,6 +49,7 @@ class provider implements
         $collection->add_database_table('imageblog_diagnoses', [
             'userid' => 'privacy:metadata:imageblog_diagnoses:userid',
             'diagnosis' => 'privacy:metadata:imageblog_diagnoses:diagnosis',
+            'rubricgrade' => 'privacy:metadata:imageblog_diagnoses:rubricgrade',
             'timecreated' => 'privacy:metadata:imageblog_diagnoses:timecreated',
             'timemodified' => 'privacy:metadata:imageblog_diagnoses:timemodified',
         ], 'privacy:metadata:imageblog_diagnoses');
@@ -180,12 +181,20 @@ class provider implements
             $record = $DB->get_record('imageblog_diagnoses', ['imageblogid' => $cm->instance, 'userid' => $user->id]);
             if ($record) {
                 $bestid = $DB->get_field('imageblog', 'bestdiagnosisid', ['id' => $cm->instance]);
-                writer::with_context($context)->export_data([], (object) [
+                $data = [
                     'diagnosis' => $record->diagnosis,
                     'markedbest' => transform::yesno(!empty($bestid) && (int) $bestid === (int) $record->id),
                     'timecreated' => transform::datetime($record->timecreated),
                     'timemodified' => transform::datetime($record->timemodified),
-                ]);
+                ];
+                if ($record->rubricgrade !== null) {
+                    $data['rubricgrade'] = format_float((float) $record->rubricgrade, 2);
+                }
+                writer::with_context($context)->export_data([], (object) $data);
+
+                // Any advanced grading (e.g. rubric) fill is keyed by the diagnosis id.
+                $gradesubcontext = [get_string('gradenoun')];
+                \core_grading\privacy\provider::export_item_data($context, (int) $record->id, $gradesubcontext);
             }
 
             self::export_questions($context, $cm->instance, (int) $user->id);
@@ -254,6 +263,8 @@ class provider implements
         if (!$cm) {
             return;
         }
+        // Remove any advanced grading (e.g. rubric) fills for the whole area first.
+        \core_grading\privacy\provider::delete_instance_data($context);
         $DB->delete_records('imageblog_diagnoses', ['imageblogid' => $cm->instance]);
         $DB->delete_records('imageblog_questions', ['imageblogid' => $cm->instance]);
         self::clear_dangling_best($cm->instance);
@@ -276,6 +287,12 @@ class provider implements
             $cm = get_coursemodule_from_id('imageblog', $context->instanceid);
             if (!$cm) {
                 continue;
+            }
+            // Remove the advanced grading (e.g. rubric) fill for this user's
+            // diagnosis, keyed by the diagnosis id, before deleting the row.
+            $diagnosisid = $DB->get_field('imageblog_diagnoses', 'id', ['imageblogid' => $cm->instance, 'userid' => $user->id]);
+            if ($diagnosisid) {
+                \core_grading\privacy\provider::delete_instance_data($context, (int) $diagnosisid);
             }
             $DB->delete_records('imageblog_diagnoses', ['imageblogid' => $cm->instance, 'userid' => $user->id]);
             // Remove the questions this user asked, and strip the answers they authored on others' questions.
@@ -305,6 +322,19 @@ class provider implements
 
         [$insql, $inparams] = $DB->get_in_or_equal($userlist->get_userids(), SQL_PARAMS_NAMED);
         $params = array_merge(['imageblogid' => $cm->instance], $inparams);
+
+        // Remove the advanced grading (e.g. rubric) fills for these users'
+        // diagnoses, keyed by the diagnosis id, before deleting the rows.
+        $diagnosisids = $DB->get_fieldset_select(
+            'imageblog_diagnoses',
+            'id',
+            "imageblogid = :imageblogid AND userid {$insql}",
+            $params
+        );
+        if ($diagnosisids) {
+            \core_grading\privacy\provider::delete_data_for_instances($context, array_map('intval', $diagnosisids));
+        }
+
         $DB->delete_records_select('imageblog_diagnoses', "imageblogid = :imageblogid AND userid {$insql}", $params);
         $DB->delete_records_select('imageblog_questions', "imageblogid = :imageblogid AND userid {$insql}", $params);
         self::strip_answers($cm->instance, "answeredby {$insql}", $inparams);

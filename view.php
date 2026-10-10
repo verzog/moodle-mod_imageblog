@@ -47,6 +47,11 @@ $cansubmit = has_capability('mod/imageblog:submit', $context);
 $canask = has_capability('mod/imageblog:askquestion', $context);
 $cananswer = has_capability('mod/imageblog:answerquestion', $context);
 
+// When an advanced grading method (e.g. a rubric) is active, grading is manual
+// and per submission; the built-in engine's reveal-time scoring and best-answer
+// bonus do not apply.
+$gradingcontroller = imageblog_grading_active($imageblog);
+
 // A case may carry an optional 360 degree panorama. Load the bundled Pannellum
 // stylesheet before any output; the viewer script is loaded lazily below.
 $panoramaurl = imageblog_get_panorama_url($context);
@@ -143,9 +148,20 @@ if ($cansubmit && empty($imageblog->revealed)) {
         }
         $now = time();
         if ($existing) {
+            // If the teacher had already graded this diagnosis with an advanced
+            // grading method and the text now changes, that assessment no longer
+            // applies: clear the stored grade and the gradebook entry so the
+            // teacher re-marks the new answer.
+            $invalidategrade = $existing->rubricgrade !== null && $existing->diagnosis !== $data->diagnosis;
             $existing->diagnosis = $data->diagnosis;
             $existing->timemodified = $now;
+            if ($invalidategrade) {
+                $existing->rubricgrade = null;
+            }
             $DB->update_record('imageblog_diagnoses', $existing);
+            if ($invalidategrade) {
+                imageblog_update_grades($imageblog, $USER->id);
+            }
         } else {
             $record = (object) [
                 'imageblogid' => $imageblog->id,
@@ -634,7 +650,10 @@ if (!empty($imageblog->revealed)) {
         }
     }
 
-    if ($canreveal) {
+    // The best-answer bonus belongs to the built-in scoring engine; with an
+    // advanced grading method active the teacher marks each submission instead
+    // (rendered below, independent of the reveal).
+    if ($canreveal && !$gradingcontroller) {
         echo $OUTPUT->heading(get_string('alldiagnoses', 'mod_imageblog'), 3);
         $alldiagnoses = $DB->get_records('imageblog_diagnoses', ['imageblogid' => $imageblog->id], 'timecreated ASC');
         if (!$alldiagnoses) {
@@ -675,9 +694,52 @@ if (!empty($imageblog->revealed)) {
     } else if ($mydiagnosis) {
         echo html_writer::tag('p', get_string('yourdiagnosis', 'mod_imageblog', s($mydiagnosis->diagnosis)));
     }
+    // With advanced grading the teacher may grade before revealing, so a reader
+    // can already have a grade; show it to them as soon as it is awarded.
+    if (!$canreveal && $gradingcontroller && $mydiagnosis) {
+        $grades = imageblog_get_user_grades($imageblog, $USER->id);
+        if (isset($grades[$USER->id]) && $grades[$USER->id]->rawgrade !== null) {
+            $a = format_float($grades[$USER->id]->rawgrade, 2) . ' / ' . $imageblog->grade;
+            echo html_writer::tag('p', get_string('yourgrade', 'mod_imageblog', $a));
+        }
+    }
     if ($canreveal) {
         $revealurl = new moodle_url('/mod/imageblog/view.php', ['id' => $cm->id, 'reveal' => 1, 'sesskey' => sesskey()]);
         echo $OUTPUT->single_button($revealurl, get_string('revealoutcome', 'mod_imageblog'));
+    }
+}
+
+// Teacher grading with an advanced grading method (e.g. a rubric). This marking
+// is independent of the reveal, so it is shown whenever a method is active.
+if ($canreveal && $gradingcontroller) {
+    echo $OUTPUT->heading(get_string('gradeheading', 'mod_imageblog'), 3);
+    if (!$gradingcontroller->is_form_available()) {
+        // The method is selected but the rubric has not been defined yet.
+        echo $gradingcontroller->form_unavailable_notification();
+    } else {
+        $tograde = $DB->get_records('imageblog_diagnoses', ['imageblogid' => $imageblog->id], 'timecreated ASC');
+        if (!$tograde) {
+            echo html_writer::tag('p', get_string('nodiagnoses', 'mod_imageblog'));
+        } else {
+            $gradetable = new html_table();
+            $gradetable->head = [
+                get_string('diagnosis', 'mod_imageblog'),
+                get_string('grade'),
+                get_string('action'),
+            ];
+            foreach ($tograde as $diag) {
+                if ($diag->rubricgrade !== null) {
+                    $gradecell = format_float((float) $diag->rubricgrade, 2) . ' / ' . $imageblog->grade;
+                    $label = get_string('editgrade', 'mod_imageblog');
+                } else {
+                    $gradecell = '-';
+                    $label = get_string('gradediagnosis', 'mod_imageblog');
+                }
+                $gradeurl = new moodle_url('/mod/imageblog/grade.php', ['id' => $cm->id, 'userid' => $diag->userid]);
+                $gradetable->data[] = [s($diag->diagnosis), $gradecell, $OUTPUT->single_button($gradeurl, $label, 'get')];
+            }
+            echo html_writer::table($gradetable);
+        }
     }
 }
 
