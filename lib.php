@@ -519,12 +519,33 @@ function imageblog_model_companion_extensions() {
  * @return array the options array for file_prepare_draft_area/file_save_draft_area_files
  */
 function imageblog_model_filemanager_options() {
+    // The model and companion extensions (.glb, .gltf, .stl, .ply, .obj, .bin,
+    // .mtl, ...) are not in Moodle's file-type registry, so listing them in
+    // accepted_types makes the file picker silently drop the unknown ones and
+    // reject the upload. Accept any type here and enforce the real allow-list
+    // server-side in the form's validation(), where the match is by extension
+    // and does not depend on the registry.
     return [
         'maxbytes' => 50 * 1024 * 1024,
-        'accepted_types' => array_merge(imageblog_model_extensions(), imageblog_model_companion_extensions()),
+        'accepted_types' => '*',
         'maxfiles' => -1,
         'subdirs' => 1,
     ];
+}
+
+/**
+ * Whether a file name's extension is an accepted 3D model or companion file.
+ *
+ * @param string $filename the file name to check
+ * @return bool true if the extension is a recognised model or companion type
+ */
+function imageblog_model_file_accepted($filename) {
+    $allowed = array_map(
+        fn($ext) => ltrim($ext, '.'),
+        array_merge(imageblog_model_extensions(), imageblog_model_companion_extensions())
+    );
+    $ext = core_text::strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    return in_array($ext, $allowed, true);
 }
 
 /**

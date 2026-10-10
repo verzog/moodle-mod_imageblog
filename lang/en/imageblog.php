@@ -89,6 +89,7 @@ $string['messagesubject_questionposted'] = 'New question on {$a->name}';
 $string['model'] = '3D model files';
 $string['model_help'] = 'Optional 3D model shown as an interactive viewer on the case: drag to rotate, scroll or pinch to zoom. Upload a main model file (glTF/GLB, STL, PLY or OBJ, up to 50 MB each) and, when needed, its companion files alongside it: a glTF may reference a .bin buffer and texture images, and an OBJ may ship one or more .mtl material libraries with textures. Keep each companion at the relative path the model expects (subfolders are allowed); a binary GLB needs none. The first recognised model file is used as the main model.';
 $string['modelnomainfile'] = 'Add a main model file (glTF/GLB, STL, PLY or OBJ), not only companion files such as .bin, .mtl or textures.';
+$string['modelunacceptedfile'] = 'These files are not accepted 3D model or companion types: {$a}. Allowed: glTF/GLB, STL, PLY and OBJ models, plus .bin, .mtl, .png, .jpg, .jpeg and .webp companions.';
 $string['modelunavailable'] = 'The 3D model could not be loaded.';
 $string['modulename'] = 'Image blog';
 $string['modulename_help'] = 'The image blog activity presents a clinical case. Readers submit a diagnosis, and once the outcome is revealed they receive a grade based on their answer.';

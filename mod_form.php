@@ -265,15 +265,46 @@ class mod_imageblog_mod_form extends moodleform_mod {
             }
         }
 
-        // A model bundle must contain a main model file: companions alone (a
-        // .bin, .mtl or texture) would save but render nothing on the case.
+        // The file picker accepts any type (Moodle cannot restrict to the 3D
+        // extensions, which are not in its registry), so enforce the allow-list
+        // here: reject anything that is neither a model nor a companion file,
+        // and require at least one main model file (companions alone would save
+        // but render nothing on the case).
         if (!empty($data['hasmodel']) && !empty($data['model_file'])) {
-            if (!$this->draft_has_main_model((int) $data['model_file'])) {
+            $unaccepted = $this->draft_unaccepted_model_files((int) $data['model_file']);
+            if ($unaccepted) {
+                $errors['model_file'] = get_string('modelunacceptedfile', 'mod_imageblog', implode(', ', $unaccepted));
+            } else if (!$this->draft_has_main_model((int) $data['model_file'])) {
                 $errors['model_file'] = get_string('modelnomainfile', 'mod_imageblog');
             }
         }
 
         return $errors;
+    }
+
+    /**
+     * Names of any files in the model draft area whose extension is not an
+     * accepted 3D model or companion type.
+     *
+     * @param int $draftitemid the submitted draft area id
+     * @return string[] the rejected file names, empty when all are accepted
+     */
+    protected function draft_unaccepted_model_files(int $draftitemid): array {
+        global $USER;
+
+        if (!$draftitemid) {
+            return [];
+        }
+        $usercontext = context_user::instance($USER->id);
+        $fs = get_file_storage();
+        $draftfiles = $fs->get_area_files($usercontext->id, 'user', 'draft', $draftitemid, 'filename', false);
+        $rejected = [];
+        foreach ($draftfiles as $file) {
+            if (!imageblog_model_file_accepted($file->get_filename())) {
+                $rejected[] = $file->get_filename();
+            }
+        }
+        return $rejected;
     }
 
     /**
