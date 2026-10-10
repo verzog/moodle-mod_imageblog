@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Library of interface functions and constants for mod_imageblog.
+ * Library of interface functions and constants for mod_diagnosis.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -28,7 +28,7 @@
  * @param string $feature one of the FEATURE_xx constants
  * @return mixed true/false for a known feature, null for an unknown one
  */
-function imageblog_supports($feature) {
+function diagnosis_supports($feature) {
     switch ($feature) {
         case FEATURE_MOD_INTRO:
             return true;
@@ -52,40 +52,40 @@ function imageblog_supports($feature) {
 }
 
 /**
- * Create a new image blog instance.
+ * Create a new diagnosis instance.
  *
  * @param stdClass $data submitted form data (with coursemodule set)
- * @param mod_imageblog_mod_form|null $mform the form instance, if any
+ * @param mod_diagnosis_mod_form|null $mform the form instance, if any
  * @return int the id of the newly created instance
  */
-function imageblog_add_instance($data, $mform = null) {
+function diagnosis_add_instance($data, $mform = null) {
     global $DB;
 
     $data->timecreated = time();
     $data->timemodified = $data->timecreated;
     $data->completionsubmit = empty($data->completionsubmit) ? 0 : 1;
-    $data->id = $DB->insert_record('imageblog', $data);
+    $data->id = $DB->insert_record('diagnosis', $data);
 
-    imageblog_grade_item_update($data);
+    diagnosis_grade_item_update($data);
 
     $context = context_module::instance($data->coursemodule);
     if (isset($data->casetags)) {
-        core_tag_tag::set_item_tags('mod_imageblog', 'imageblog', $data->id, $context, $data->casetags);
+        core_tag_tag::set_item_tags('mod_diagnosis', 'diagnosis', $data->id, $context, $data->casetags);
     }
-    imageblog_save_panorama($data, $context);
-    imageblog_save_model($data, $context);
+    diagnosis_save_panorama($data, $context);
+    diagnosis_save_model($data, $context);
 
     return $data->id;
 }
 
 /**
- * Update an existing image blog instance.
+ * Update an existing diagnosis instance.
  *
  * @param stdClass $data submitted form data (with instance set)
- * @param mod_imageblog_mod_form|null $mform the form instance, if any
+ * @param mod_diagnosis_mod_form|null $mform the form instance, if any
  * @return bool true on success
  */
-function imageblog_update_instance($data, $mform = null) {
+function diagnosis_update_instance($data, $mform = null) {
     global $DB;
 
     $data->timemodified = time();
@@ -98,56 +98,45 @@ function imageblog_update_instance($data, $mform = null) {
     } else {
         unset($data->completionsubmit);
     }
-    $DB->update_record('imageblog', $data);
+    $DB->update_record('diagnosis', $data);
 
     // Reload the full record: the form data omits fields that are not form
-    // elements (such as "revealed"), and imageblog_update_grades() needs the
-    // real reveal state to decide whether grades exist.
-    $imageblog = $DB->get_record('imageblog', ['id' => $data->id], '*', MUST_EXIST);
-    imageblog_grade_item_update($imageblog);
-    // Core activates the chosen advanced grading method only after this returns
-    // (edit_module_post_actions runs later), so imageblog_grading_active() still
-    // reports the previous method here. Decide from the submitted selector
-    // instead: when a method is (about to be) active, publish stored rubric
-    // points and clear any automatic grades a previous method left behind;
-    // otherwise run the engine grade pass.
-    if (!empty($data->advancedgradingmethod_submissions)) {
-        imageblog_publish_rubric_grades($imageblog);
-    } else {
-        imageblog_update_grades($imageblog);
-    }
+    // elements (such as "revealed").
+    $diagnosis = $DB->get_record('diagnosis', ['id' => $data->id], '*', MUST_EXIST);
+    diagnosis_grade_item_update($diagnosis);
+    diagnosis_update_grades($diagnosis);
 
     $context = context_module::instance($data->coursemodule);
     if (isset($data->casetags)) {
-        core_tag_tag::set_item_tags('mod_imageblog', 'imageblog', $data->id, $context, $data->casetags);
+        core_tag_tag::set_item_tags('mod_diagnosis', 'diagnosis', $data->id, $context, $data->casetags);
     }
-    imageblog_save_panorama($data, $context);
-    imageblog_save_model($data, $context);
+    diagnosis_save_panorama($data, $context);
+    diagnosis_save_model($data, $context);
 
     return true;
 }
 
 /**
- * Delete an image blog instance and its associated data.
+ * Delete an diagnosis instance and its associated data.
  *
  * @param int $id the instance id
  * @return bool true on success
  */
-function imageblog_delete_instance($id) {
+function diagnosis_delete_instance($id) {
     global $DB;
 
-    $imageblog = $DB->get_record('imageblog', ['id' => $id]);
-    if (!$imageblog) {
+    $diagnosis = $DB->get_record('diagnosis', ['id' => $id]);
+    if (!$diagnosis) {
         return false;
     }
 
-    core_tag_tag::remove_all_item_tags('mod_imageblog', 'imageblog', $imageblog->id);
+    core_tag_tag::remove_all_item_tags('mod_diagnosis', 'diagnosis', $diagnosis->id);
 
-    $DB->delete_records('imageblog_questions', ['imageblogid' => $imageblog->id]);
-    $DB->delete_records('imageblog_diagnoses', ['imageblogid' => $imageblog->id]);
-    $DB->delete_records('imageblog', ['id' => $imageblog->id]);
+    $DB->delete_records('diagnosis_questions', ['diagnosisid' => $diagnosis->id]);
+    $DB->delete_records('diagnosis_submissions', ['diagnosisid' => $diagnosis->id]);
+    $DB->delete_records('diagnosis', ['id' => $diagnosis->id]);
 
-    imageblog_grade_item_delete($imageblog);
+    diagnosis_grade_item_delete($diagnosis);
 
     return true;
 }
@@ -158,48 +147,48 @@ function imageblog_delete_instance($id) {
  * @param stdClass $coursemodule the course module record
  * @return cached_cm_info|false the course-module info, or false if the instance is missing
  */
-function imageblog_get_coursemodule_info($coursemodule) {
+function diagnosis_get_coursemodule_info($coursemodule) {
     global $DB;
 
     $fields = 'id, name, intro, introformat, completionsubmit';
-    $imageblog = $DB->get_record('imageblog', ['id' => $coursemodule->instance], $fields);
-    if (!$imageblog) {
+    $diagnosis = $DB->get_record('diagnosis', ['id' => $coursemodule->instance], $fields);
+    if (!$diagnosis) {
         return false;
     }
 
     $info = new cached_cm_info();
-    $info->name = $imageblog->name;
+    $info->name = $diagnosis->name;
 
     if ($coursemodule->showdescription) {
-        $info->content = format_module_intro('imageblog', $imageblog, $coursemodule->id, false);
+        $info->content = format_module_intro('diagnosis', $diagnosis, $coursemodule->id, false);
     }
 
     // Expose the custom completion rule so the completion API treats it as available.
     if ($coursemodule->completion == COMPLETION_TRACKING_AUTOMATIC) {
-        $info->customdata['customcompletionrules']['completionsubmit'] = $imageblog->completionsubmit;
+        $info->customdata['customcompletionrules']['completionsubmit'] = $diagnosis->completionsubmit;
     }
 
     return $info;
 }
 
 /**
- * Create or update the grade item for an image blog instance.
+ * Create or update the grade item for an diagnosis instance.
  *
- * @param stdClass $imageblog the instance record (must include course, id, name, grade)
+ * @param stdClass $diagnosis the instance record (must include course, id, name, grade)
  * @param array|object|string $grades raw grades to push, or 'reset' to reset the item
  * @return int GRADE_UPDATE_OK, GRADE_UPDATE_FAILED and friends
  */
-function imageblog_grade_item_update($imageblog, $grades = null) {
+function diagnosis_grade_item_update($diagnosis, $grades = null) {
     global $CFG;
     require_once($CFG->libdir . '/gradelib.php');
 
     $item = [
-        'itemname' => clean_param($imageblog->name, PARAM_NOTAGS),
+        'itemname' => clean_param($diagnosis->name, PARAM_NOTAGS),
     ];
 
-    if (isset($imageblog->grade) && $imageblog->grade > 0) {
+    if (isset($diagnosis->grade) && $diagnosis->grade > 0) {
         $item['gradetype'] = GRADE_TYPE_VALUE;
-        $item['grademax'] = $imageblog->grade;
+        $item['grademax'] = $diagnosis->grade;
         $item['grademin'] = 0;
     } else {
         $item['gradetype'] = GRADE_TYPE_NONE;
@@ -210,44 +199,44 @@ function imageblog_grade_item_update($imageblog, $grades = null) {
         $grades = null;
     }
 
-    return grade_update('mod/imageblog', $imageblog->course, 'mod', 'imageblog', $imageblog->id, 0, $grades, $item);
+    return grade_update('mod/diagnosis', $diagnosis->course, 'mod', 'diagnosis', $diagnosis->id, 0, $grades, $item);
 }
 
 /**
- * Delete the grade item for an image blog instance.
+ * Delete the grade item for an diagnosis instance.
  *
- * @param stdClass $imageblog the instance record
+ * @param stdClass $diagnosis the instance record
  * @return int GRADE_UPDATE_OK, GRADE_UPDATE_FAILED and friends
  */
-function imageblog_grade_item_delete($imageblog) {
+function diagnosis_grade_item_delete($diagnosis) {
     global $CFG;
     require_once($CFG->libdir . '/gradelib.php');
 
-    return grade_update('mod/imageblog', $imageblog->course, 'mod', 'imageblog', $imageblog->id, 0, null, ['deleted' => 1]);
+    return grade_update('mod/diagnosis', $diagnosis->course, 'mod', 'diagnosis', $diagnosis->id, 0, null, ['deleted' => 1]);
 }
 
 /**
  * The advanced grading controller active on an instance's "submissions" area,
- * or null when the activity is scored by the built-in engine.
+ * or null when the activity uses simple direct grading.
  *
  * A controller is returned as soon as the teacher selects an advanced grading
  * method (e.g. a rubric), even before the rubric itself is defined; callers that
  * render the marking form must still check the controller's is_form_available().
  *
- * @param stdClass $imageblog the instance record (needs id and course)
- * @return \gradingform_controller|null the active controller, or null for engine scoring
+ * @param stdClass $diagnosis the instance record (needs id and course)
+ * @return \gradingform_controller|null the active controller, or null for simple grading
  */
-function imageblog_grading_active($imageblog) {
+function diagnosis_grading_active($diagnosis) {
     global $CFG;
     require_once($CFG->dirroot . '/grade/grading/lib.php');
 
-    $courseid = $imageblog->course ?? 0;
-    $cm = get_coursemodule_from_instance('imageblog', $imageblog->id, $courseid, false, IGNORE_MISSING);
+    $courseid = $diagnosis->course ?? 0;
+    $cm = get_coursemodule_from_instance('diagnosis', $diagnosis->id, $courseid, false, IGNORE_MISSING);
     if (!$cm) {
         return null;
     }
     $context = context_module::instance($cm->id);
-    $gradingmanager = get_grading_manager($context, 'mod_imageblog', 'submissions');
+    $gradingmanager = get_grading_manager($context, 'mod_diagnosis', 'submissions');
     if ($method = $gradingmanager->get_active_method()) {
         return $gradingmanager->get_controller($method);
     }
@@ -255,68 +244,36 @@ function imageblog_grading_active($imageblog) {
 }
 
 /**
- * Compute the grades a set of users have earned on an image blog instance.
+ * Compute the grades a set of users have earned on a diagnosis instance.
  *
- * When an advanced grading method (e.g. a rubric) is active, grades are the
- * points the teacher awarded per submission, available as soon as they are
- * entered. Otherwise grades come from the built-in scoring engine and only
- * exist once the case outcome has been revealed; the engine grade is its
- * fraction (0..1) scaled by the configured maximum.
+ * Grades come from the teacher's marking of each submitted diagnosis (simple
+ * direct grading or an advanced method such as a rubric), stored as points on
+ * the submission. A submission the teacher has not yet marked has no grade.
  *
- * @param stdClass $imageblog the instance record
+ * @param stdClass $diagnosis the instance record
  * @param int $userid a single user to compute for, or 0 for everyone
  * @return array userid => object{userid, rawgrade}
  */
-function imageblog_get_user_grades($imageblog, $userid = 0) {
+function diagnosis_get_user_grades($diagnosis, $userid = 0) {
     global $DB;
 
-    if (empty($imageblog->grade) || $imageblog->grade <= 0) {
+    if (empty($diagnosis->grade) || $diagnosis->grade <= 0) {
         return [];
     }
 
-    $params = ['imageblogid' => $imageblog->id];
+    $params = ['diagnosisid' => $diagnosis->id];
     if ($userid) {
         $params['userid'] = $userid;
     }
 
-    // Advanced grading: return the stored per-submission points, independent of
-    // the reveal, skipping submissions the teacher has not yet marked.
-    if (imageblog_grading_active($imageblog)) {
-        $grades = [];
-        foreach ($DB->get_records('imageblog_diagnoses', $params) as $record) {
-            if ($record->rubricgrade === null) {
-                continue;
-            }
-            $grades[$record->userid] = (object) [
-                'userid' => $record->userid,
-                'rawgrade' => (float) $record->rubricgrade,
-            ];
-        }
-        return $grades;
-    }
-
-    // Engine scoring: grades only exist once the outcome has been revealed.
-    if (empty($imageblog->revealed)) {
-        return [];
-    }
-
     $grades = [];
-    foreach ($DB->get_records('imageblog_diagnoses', $params) as $record) {
-        $isbest = !empty($imageblog->bestdiagnosisid)
-            && (int) $record->id === (int) $imageblog->bestdiagnosisid;
-        $fraction = \mod_imageblog\local\grader::grade_fraction(
-            (string) $record->diagnosis,
-            (string) $imageblog->correctdiagnosis,
-            $isbest,
-            (int) $imageblog->casedifficulty,
-            (string) $imageblog->difficultyscale,
-            (float) $imageblog->participationfactor,
-            (float) $imageblog->correctfactor,
-            (float) $imageblog->bestfactor
-        );
+    foreach ($DB->get_records('diagnosis_submissions', $params) as $record) {
+        if ($record->grade === null) {
+            continue;
+        }
         $grades[$record->userid] = (object) [
             'userid' => $record->userid,
-            'rawgrade' => $fraction * $imageblog->grade,
+            'rawgrade' => (float) $record->grade,
         ];
     }
 
@@ -324,61 +281,29 @@ function imageblog_get_user_grades($imageblog, $userid = 0) {
 }
 
 /**
- * Push the current grades for an image blog instance into the gradebook.
+ * Push the current grades for an diagnosis instance into the gradebook.
  *
- * @param stdClass $imageblog the instance record
+ * @param stdClass $diagnosis the instance record
  * @param int $userid a single user to update, or 0 for everyone
  * @param bool $nullifnone whether to store a null grade when a named user has none
  * @return void
  */
-function imageblog_update_grades($imageblog, $userid = 0, $nullifnone = true) {
+function diagnosis_update_grades($diagnosis, $userid = 0, $nullifnone = true) {
     global $CFG;
     require_once($CFG->libdir . '/gradelib.php');
 
-    if (empty($imageblog->grade) || $imageblog->grade <= 0) {
-        imageblog_grade_item_update($imageblog);
+    if (empty($diagnosis->grade) || $diagnosis->grade <= 0) {
+        diagnosis_grade_item_update($diagnosis);
         return;
     }
 
-    $grades = imageblog_get_user_grades($imageblog, $userid);
+    $grades = diagnosis_get_user_grades($diagnosis, $userid);
     if ($grades) {
-        imageblog_grade_item_update($imageblog, $grades);
+        diagnosis_grade_item_update($diagnosis, $grades);
     } else if ($userid && $nullifnone) {
-        imageblog_grade_item_update($imageblog, (object) ['userid' => $userid, 'rawgrade' => null]);
+        diagnosis_grade_item_update($diagnosis, (object) ['userid' => $userid, 'rawgrade' => null]);
     } else {
-        imageblog_grade_item_update($imageblog);
-    }
-}
-
-/**
- * Push every submission's stored advanced-grading (e.g. rubric) points into the
- * gradebook, writing a null grade for submissions that have not been marked.
- *
- * This is the reconcile used when a grading method is turned on while editing
- * the instance: it clears any automatic grades a previous method left behind
- * and publishes marks already entered, since manual marking now drives grades.
- *
- * @param stdClass $imageblog the instance record
- * @return void
- */
-function imageblog_publish_rubric_grades($imageblog) {
-    global $CFG, $DB;
-    require_once($CFG->libdir . '/gradelib.php');
-
-    imageblog_grade_item_update($imageblog);
-    if (empty($imageblog->grade) || $imageblog->grade <= 0) {
-        return;
-    }
-
-    $grades = [];
-    foreach ($DB->get_records('imageblog_diagnoses', ['imageblogid' => $imageblog->id]) as $record) {
-        $grades[$record->userid] = (object) [
-            'userid' => $record->userid,
-            'rawgrade' => $record->rubricgrade === null ? null : (float) $record->rubricgrade,
-        ];
-    }
-    if ($grades) {
-        imageblog_grade_item_update($imageblog, $grades);
+        diagnosis_grade_item_update($diagnosis);
     }
 }
 
@@ -394,13 +319,13 @@ function imageblog_publish_rubric_grades($imageblog) {
  * @param array $options additional options affecting file serving
  * @return bool false if the file was not found; otherwise the file is sent and execution stops
  */
-function imageblog_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
+function diagnosis_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
     if ($context->contextlevel != CONTEXT_MODULE) {
         return false;
     }
 
     require_course_login($course, true, $cm);
-    require_capability('mod/imageblog:view', $context);
+    require_capability('mod/diagnosis:view', $context);
 
     // These areas each hold a single file at itemid 0 (the intro, the optional
     // 360 degree panorama and the optional 3D model), so their URLs carry no
@@ -413,7 +338,7 @@ function imageblog_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
     $filepath = $args ? '/' . implode('/', $args) . '/' : '/';
 
     $fs = get_file_storage();
-    $file = $fs->get_file($context->id, 'mod_imageblog', $filearea, 0, $filepath, $filename);
+    $file = $fs->get_file($context->id, 'mod_diagnosis', $filearea, 0, $filepath, $filename);
     if (!$file || $file->is_directory()) {
         return false;
     }
@@ -427,7 +352,7 @@ function imageblog_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
  *
  * @return array the options array for file_prepare_draft_area/file_save_draft_area_files
  */
-function imageblog_panorama_filemanager_options() {
+function diagnosis_panorama_filemanager_options() {
     return [
         'maxbytes' => 20 * 1024 * 1024,
         'accepted_types' => ['.jpg', '.jpeg', '.png'],
@@ -445,9 +370,9 @@ function imageblog_panorama_filemanager_options() {
  * @param context $context the module context
  * @return moodle_url|null the pluginfile URL, or null when no panorama exists
  */
-function imageblog_get_panorama_url($context) {
+function diagnosis_get_panorama_url($context) {
     $fs = get_file_storage();
-    $files = $fs->get_area_files($context->id, 'mod_imageblog', 'panorama', 0, 'itemid, filepath, filename', false);
+    $files = $fs->get_area_files($context->id, 'mod_diagnosis', 'panorama', 0, 'itemid, filepath, filename', false);
     if (!$files) {
         return null;
     }
@@ -473,21 +398,21 @@ function imageblog_get_panorama_url($context) {
  * @param context $context the module context
  * @return void
  */
-function imageblog_save_panorama($data, $context) {
+function diagnosis_save_panorama($data, $context) {
     if (!isset($data->panorama_image)) {
         return;
     }
     if (empty($data->haspanorama)) {
-        get_file_storage()->delete_area_files($context->id, 'mod_imageblog', 'panorama', 0);
+        get_file_storage()->delete_area_files($context->id, 'mod_diagnosis', 'panorama', 0);
         return;
     }
     file_save_draft_area_files(
         $data->panorama_image,
         $context->id,
-        'mod_imageblog',
+        'mod_diagnosis',
         'panorama',
         0,
-        imageblog_panorama_filemanager_options()
+        diagnosis_panorama_filemanager_options()
     );
 }
 
@@ -496,7 +421,7 @@ function imageblog_save_panorama($data, $context) {
  *
  * @return string[] accepted extensions, each with a leading dot
  */
-function imageblog_model_extensions() {
+function diagnosis_model_extensions() {
     return ['.glb', '.gltf', '.stl', '.ply', '.obj'];
 }
 
@@ -506,7 +431,7 @@ function imageblog_model_extensions() {
  *
  * @return string[] accepted companion extensions, each with a leading dot
  */
-function imageblog_model_companion_extensions() {
+function diagnosis_model_companion_extensions() {
     return ['.bin', '.mtl', '.png', '.jpg', '.jpeg', '.webp'];
 }
 
@@ -518,7 +443,7 @@ function imageblog_model_companion_extensions() {
  *
  * @return array the options array for file_prepare_draft_area/file_save_draft_area_files
  */
-function imageblog_model_filemanager_options() {
+function diagnosis_model_filemanager_options() {
     // The model and companion extensions (.glb, .gltf, .stl, .ply, .obj, .bin,
     // .mtl, ...) are not in Moodle's file-type registry, so listing them in
     // accepted_types makes the file picker silently drop the unknown ones and
@@ -539,10 +464,10 @@ function imageblog_model_filemanager_options() {
  * @param string $filename the file name to check
  * @return bool true if the extension is a recognised model or companion type
  */
-function imageblog_model_file_accepted($filename) {
+function diagnosis_model_file_accepted($filename) {
     $allowed = array_map(
         fn($ext) => ltrim($ext, '.'),
-        array_merge(imageblog_model_extensions(), imageblog_model_companion_extensions())
+        array_merge(diagnosis_model_extensions(), diagnosis_model_companion_extensions())
     );
     $ext = core_text::strtolower(pathinfo($filename, PATHINFO_EXTENSION));
     return in_array($ext, $allowed, true);
@@ -556,10 +481,10 @@ function imageblog_model_file_accepted($filename) {
  * @param context $context the module context
  * @return stored_file|null the main model file, or null when none is stored
  */
-function imageblog_get_model_mainfile($context) {
+function diagnosis_get_model_mainfile($context) {
     $fs = get_file_storage();
-    $files = $fs->get_area_files($context->id, 'mod_imageblog', 'model', 0, 'filepath, filename', false);
-    $modelexts = array_map(fn($ext) => ltrim($ext, '.'), imageblog_model_extensions());
+    $files = $fs->get_area_files($context->id, 'mod_diagnosis', 'model', 0, 'filepath, filename', false);
+    $modelexts = array_map(fn($ext) => ltrim($ext, '.'), diagnosis_model_extensions());
     foreach ($files as $file) {
         $ext = core_text::strtolower(pathinfo($file->get_filename(), PATHINFO_EXTENSION));
         if (in_array($ext, $modelexts, true)) {
@@ -576,7 +501,7 @@ function imageblog_get_model_mainfile($context) {
  * @param stored_file $file a file stored in the model area
  * @return moodle_url the pluginfile URL for the file
  */
-function imageblog_model_file_url($file) {
+function diagnosis_model_file_url($file) {
     return moodle_url::make_pluginfile_url(
         $file->get_contextid(),
         $file->get_component(),
@@ -593,9 +518,9 @@ function imageblog_model_file_url($file) {
  * @param context $context the module context
  * @return moodle_url|null the pluginfile URL, or null when no model exists
  */
-function imageblog_get_model_url($context) {
-    $file = imageblog_get_model_mainfile($context);
-    return $file ? imageblog_model_file_url($file) : null;
+function diagnosis_get_model_url($context) {
+    $file = diagnosis_get_model_mainfile($context);
+    return $file ? diagnosis_model_file_url($file) : null;
 }
 
 /**
@@ -606,14 +531,14 @@ function imageblog_get_model_url($context) {
  * @param string $extension the companion extension to find, without a leading dot
  * @return moodle_url[] the pluginfile URLs, empty when no such file is stored
  */
-function imageblog_get_model_companion_urls($context, $extension) {
+function diagnosis_get_model_companion_urls($context, $extension) {
     $fs = get_file_storage();
-    $files = $fs->get_area_files($context->id, 'mod_imageblog', 'model', 0, 'filepath, filename', false);
+    $files = $fs->get_area_files($context->id, 'mod_diagnosis', 'model', 0, 'filepath, filename', false);
     $extension = core_text::strtolower($extension);
     $urls = [];
     foreach ($files as $file) {
         if (core_text::strtolower(pathinfo($file->get_filename(), PATHINFO_EXTENSION)) === $extension) {
-            $urls[] = imageblog_model_file_url($file);
+            $urls[] = diagnosis_model_file_url($file);
         }
     }
     return $urls;
@@ -628,7 +553,7 @@ function imageblog_get_model_companion_urls($context, $extension) {
  * @param string $filename the stored model file name
  * @return string one of stl, ply, obj, gltf, or '' when unrecognised
  */
-function imageblog_model_format($filename) {
+function diagnosis_model_format($filename) {
     $ext = core_text::strtolower(pathinfo($filename, PATHINFO_EXTENSION));
     switch ($ext) {
         case 'glb':
@@ -656,26 +581,26 @@ function imageblog_model_format($filename) {
  * @param context $context the module context
  * @return void
  */
-function imageblog_save_model($data, $context) {
+function diagnosis_save_model($data, $context) {
     if (!isset($data->model_file)) {
         return;
     }
     if (empty($data->hasmodel)) {
-        get_file_storage()->delete_area_files($context->id, 'mod_imageblog', 'model', 0);
+        get_file_storage()->delete_area_files($context->id, 'mod_diagnosis', 'model', 0);
         return;
     }
     file_save_draft_area_files(
         $data->model_file,
         $context->id,
-        'mod_imageblog',
+        'mod_diagnosis',
         'model',
         0,
-        imageblog_model_filemanager_options()
+        diagnosis_model_filemanager_options()
     );
 }
 
 /**
- * Build the tag index for image blog cases carrying a given tag.
+ * Build the tag index for diagnosis cases carrying a given tag.
  *
  * @param core_tag_tag $tag the tag being viewed
  * @param bool $exclusivemode whether only this component/itemtype is shown
@@ -685,7 +610,7 @@ function imageblog_save_model($data, $context) {
  * @param int $page the zero-based page number
  * @return \core_tag\output\tagindex the rendered tag index
  */
-function mod_imageblog_get_tagged_cases(
+function mod_diagnosis_get_tagged_cases(
     $tag,
     $exclusivemode = false,
     $fromcontextid = 0,
@@ -700,8 +625,8 @@ function mod_imageblog_get_tagged_cases(
     $ctxselect = context_helper::get_preload_record_columns_sql('ctx');
 
     $query = "SELECT i.id, i.name, cm.id AS cmid, c.id AS courseid, c.shortname, c.fullname, $ctxselect
-                FROM {imageblog} i
-                JOIN {modules} m ON m.name = 'imageblog'
+                FROM {diagnosis} i
+                JOIN {modules} m ON m.name = 'diagnosis'
                 JOIN {course_modules} cm ON cm.module = m.id AND cm.instance = i.id
                 JOIN {tag_instance} tt ON tt.itemid = i.id
                 JOIN {context} ctx ON ctx.instanceid = cm.id AND ctx.contextlevel = :coursemodulecontextlevel
@@ -714,9 +639,9 @@ function mod_imageblog_get_tagged_cases(
                  AND c.id %COURSEFILTER%";
 
     $params = [
-        'itemtype' => 'imageblog',
+        'itemtype' => 'diagnosis',
         'tagid' => $tag->id,
-        'component' => 'mod_imageblog',
+        'component' => 'mod_diagnosis',
         'coursemodulecontextlevel' => CONTEXT_MODULE,
     ];
 
@@ -736,7 +661,7 @@ function mod_imageblog_get_tagged_cases(
     }
     $query .= 'c.sortorder, cm.id';
 
-    $builder = new core_tag_index_builder('mod_imageblog', 'imageblog', $query, $params, $page * $perpage, $perpage + 1);
+    $builder = new core_tag_index_builder('mod_diagnosis', 'diagnosis', $query, $params, $page * $perpage, $perpage + 1);
 
     while ($item = $builder->has_item_that_needs_access_check()) {
         context_helper::preload_from_record($item);
@@ -762,11 +687,11 @@ function mod_imageblog_get_tagged_cases(
         context_helper::preload_from_record($item);
         $modinfo = get_fast_modinfo($item->courseid);
         $cm = $modinfo->get_cm($item->cmid);
-        $pageurl = new moodle_url('/mod/imageblog/view.php', ['id' => $item->cmid]);
+        $pageurl = new moodle_url('/mod/diagnosis/view.php', ['id' => $item->cmid]);
         $pagename = html_writer::link($pageurl, format_string($item->name, true, ['context' => $cm->context]));
         $courseurl = course_get_url($item->courseid, $cm->sectionnum);
         $coursename = html_writer::link($courseurl, format_string($item->fullname, true, ['context' => $cm->context]));
-        $icon = html_writer::link($pageurl, $OUTPUT->pix_icon('monologo', '', 'mod_imageblog'));
+        $icon = html_writer::link($pageurl, $OUTPUT->pix_icon('monologo', '', 'mod_diagnosis'));
         $tagfeed->add($icon, $pagename, $coursename);
     }
 
@@ -774,8 +699,8 @@ function mod_imageblog_get_tagged_cases(
 
     return new core_tag\output\tagindex(
         $tag,
-        'mod_imageblog',
-        'imageblog',
+        'mod_diagnosis',
+        'diagnosis',
         $content,
         $exclusivemode,
         $fromcontextid,
@@ -787,29 +712,29 @@ function mod_imageblog_get_tagged_cases(
 }
 
 /**
- * Send one image blog notification.
+ * Send one diagnosis notification.
  *
  * @param string $name the message provider name
  * @param stdClass $userfrom the sending user
  * @param stdClass $userto the receiving user
  * @param stdClass $a the subject/body placeholder data (name, course)
- * @param stdClass $imageblog the instance record
+ * @param stdClass $diagnosis the instance record
  * @param stdClass $cm the course module record
  * @param moodle_url $url the activity view url
  * @param string|null $bodykey the body string key, or null to derive it from $name
  * @return mixed the message id, or false on failure
  */
-function imageblog_send_notification($name, $userfrom, $userto, $a, $imageblog, $cm, moodle_url $url, $bodykey = null) {
+function diagnosis_send_notification($name, $userfrom, $userto, $a, $diagnosis, $cm, moodle_url $url, $bodykey = null) {
     $bodykey = $bodykey ?? ('messagebody_' . $name);
 
     // Render the strings in the recipient's language: the Message API stores the
     // text as supplied rather than translating it when it is displayed.
     $sm = get_string_manager();
-    $subject = $sm->get_string('messagesubject_' . $name, 'mod_imageblog', $a, $userto->lang);
-    $body = $sm->get_string($bodykey, 'mod_imageblog', $a, $userto->lang);
+    $subject = $sm->get_string('messagesubject_' . $name, 'mod_diagnosis', $a, $userto->lang);
+    $body = $sm->get_string($bodykey, 'mod_diagnosis', $a, $userto->lang);
 
     $message = new \core\message\message();
-    $message->component = 'mod_imageblog';
+    $message->component = 'mod_diagnosis';
     $message->name = $name;
     $message->userfrom = $userfrom;
     $message->userto = $userto;
@@ -821,7 +746,7 @@ function imageblog_send_notification($name, $userfrom, $userto, $a, $imageblog, 
     $message->notification = 1;
     $message->courseid = $cm->course;
     $message->contexturl = $url->out(false);
-    $message->contexturlname = format_string($imageblog->name);
+    $message->contexturlname = format_string($diagnosis->name);
 
     return message_send($message);
 }
@@ -829,94 +754,90 @@ function imageblog_send_notification($name, $userfrom, $userto, $a, $imageblog, 
 /**
  * Notify everyone who submitted a diagnosis that the case outcome has been revealed.
  *
- * @param stdClass $imageblog the instance record
+ * @param stdClass $diagnosis the instance record
  * @param stdClass $cm the course module record
  * @param context $context the module context
  * @param stdClass $userfrom the teacher revealing the outcome
  * @return void
  */
-function imageblog_notify_outcome_revealed($imageblog, $cm, $context, $userfrom) {
+function diagnosis_notify_outcome_revealed($diagnosis, $cm, $context, $userfrom) {
     global $DB;
 
-    $recipients = $DB->get_records('imageblog_diagnoses', ['imageblogid' => $imageblog->id], '', 'id, userid');
+    $recipients = $DB->get_records('diagnosis_submissions', ['diagnosisid' => $diagnosis->id], '', 'id, userid');
     if (!$recipients) {
         return;
     }
 
-    $a = imageblog_notification_data($imageblog, $cm);
-    $url = new moodle_url('/mod/imageblog/view.php', ['id' => $cm->id]);
-    // Only the graded variant mentions a grade, and only the engine grades on
-    // reveal; with an advanced grading method active the teacher marks
-    // separately, so the reveal itself awards nothing and uses the plain one.
-    $bodykey = !empty($imageblog->grade) && $imageblog->grade > 0 && !imageblog_grading_active($imageblog)
-        ? 'messagebody_outcomerevealed'
-        : 'messagebody_outcomerevealed_nograde';
+    $a = diagnosis_notification_data($diagnosis, $cm);
+    $url = new moodle_url('/mod/diagnosis/view.php', ['id' => $cm->id]);
+    // The reveal shows the outcome; grades come from the teacher's separate
+    // marking, so the message does not claim the submission has been graded.
     foreach ($recipients as $recipient) {
         $userto = \core_user::get_user($recipient->userid);
         if (!$userto || $userto->deleted) {
             continue;
         }
-        imageblog_send_notification('outcomerevealed', $userfrom, $userto, $a, $imageblog, $cm, $url, $bodykey);
+        diagnosis_send_notification('outcomerevealed', $userfrom, $userto, $a, $diagnosis, $cm, $url);
     }
 }
 
 /**
  * Notify teachers who can answer that a reader posted a question.
  *
- * @param stdClass $imageblog the instance record
+ * @param stdClass $diagnosis the instance record
  * @param stdClass $cm the course module record
  * @param context $context the module context
  * @param stdClass $userfrom the reader who asked
  * @return void
  */
-function imageblog_notify_question_posted($imageblog, $cm, $context, $userfrom) {
+function diagnosis_notify_question_posted($diagnosis, $cm, $context, $userfrom) {
     // The onlyactive flag skips suspended or out-of-date enrolments, which cannot open the activity.
-    $recipients = get_enrolled_users($context, 'mod/imageblog:answerquestion', 0, 'u.*', null, 0, 0, true);
+    $recipients = get_enrolled_users($context, 'mod/diagnosis:answerquestion', 0, 'u.*', null, 0, 0, true);
     if (!$recipients) {
         return;
     }
 
-    $a = imageblog_notification_data($imageblog, $cm);
-    $url = new moodle_url('/mod/imageblog/view.php', ['id' => $cm->id]);
+    $a = diagnosis_notification_data($diagnosis, $cm);
+    $url = new moodle_url('/mod/diagnosis/view.php', ['id' => $cm->id]);
     foreach ($recipients as $userto) {
         if ((int) $userto->id === (int) $userfrom->id) {
             continue;
         }
-        imageblog_send_notification('questionposted', $userfrom, $userto, $a, $imageblog, $cm, $url);
+        diagnosis_send_notification('questionposted', $userfrom, $userto, $a, $diagnosis, $cm, $url);
     }
 }
 
 /**
  * Notify the asker that their question has been answered.
  *
- * @param stdClass $imageblog the instance record
+ * @param stdClass $diagnosis the instance record
  * @param stdClass $cm the course module record
  * @param stdClass $question the question record
  * @param stdClass $userfrom the teacher who answered
  * @return void
  */
-function imageblog_notify_question_answered($imageblog, $cm, $question, $userfrom) {
+function diagnosis_notify_question_answered($diagnosis, $cm, $question, $userfrom) {
     $userto = \core_user::get_user($question->userid);
     if (!$userto || $userto->deleted) {
         return;
     }
 
-    $a = imageblog_notification_data($imageblog, $cm);
-    $url = new moodle_url('/mod/imageblog/view.php', ['id' => $cm->id]);
-    imageblog_send_notification('questionanswered', $userfrom, $userto, $a, $imageblog, $cm, $url);
+    $a = diagnosis_notification_data($diagnosis, $cm);
+    $url = new moodle_url('/mod/diagnosis/view.php', ['id' => $cm->id]);
+    diagnosis_send_notification('questionanswered', $userfrom, $userto, $a, $diagnosis, $cm, $url);
 }
 
 /**
  * Build the placeholder data shared by the notification strings.
  *
- * @param stdClass $imageblog the instance record
+ * @param stdClass $diagnosis the instance record
  * @param stdClass $cm the course module record
  * @return stdClass an object with name and course
  */
-function imageblog_notification_data($imageblog, $cm) {
+function diagnosis_notification_data($diagnosis, $cm) {
     $course = get_course($cm->course);
     return (object) [
-        'name' => format_string($imageblog->name),
+        'name' => format_string($diagnosis->name),
         'course' => format_string($course->fullname),
     ];
 }

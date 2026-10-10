@@ -14,14 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace mod_imageblog\completion;
+namespace mod_diagnosis\completion;
 
 use core_completion\activity_custom_completion;
 
 /**
- * Activity custom completion for mod_imageblog.
+ * Activity custom completion for mod_diagnosis.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -37,8 +37,8 @@ class custom_completion extends activity_custom_completion {
 
         $this->validate_rule($rule);
 
-        $submitted = $DB->record_exists('imageblog_diagnoses', [
-            'imageblogid' => $this->cm->instance,
+        $submitted = $DB->record_exists('diagnosis_submissions', [
+            'diagnosisid' => $this->cm->instance,
             'userid' => $this->userid,
         ]);
 
@@ -61,7 +61,7 @@ class custom_completion extends activity_custom_completion {
      */
     public function get_custom_rule_descriptions(): array {
         return [
-            'completionsubmit' => get_string('completionsubmitdesc', 'mod_imageblog'),
+            'completionsubmit' => get_string('completionsubmitdesc', 'mod_diagnosis'),
         ];
     }
 

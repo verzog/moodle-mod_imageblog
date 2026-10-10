@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace mod_imageblog\form;
+namespace mod_diagnosis\form;
 
 /**
  * Form for a teacher to answer (or edit the answer to) a reader's question.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -38,11 +38,11 @@ class answer_form extends \moodleform {
         $mform->addElement('hidden', 'answer');
         $mform->setType('answer', PARAM_INT);
 
-        $mform->addElement('textarea', 'answertext', get_string('answer', 'mod_imageblog'), ['rows' => 3, 'cols' => 60]);
+        $mform->addElement('textarea', 'answertext', get_string('answer', 'mod_diagnosis'), ['rows' => 3, 'cols' => 60]);
         $mform->setType('answertext', PARAM_TEXT);
         $mform->addRule('answertext', get_string('required'), 'required', null, 'client');
 
-        $this->add_action_buttons(true, get_string('saveanswer', 'mod_imageblog'));
+        $this->add_action_buttons(true, get_string('saveanswer', 'mod_diagnosis'));
     }
 
     /**

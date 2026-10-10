@@ -15,19 +15,19 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Test data generator for mod_imageblog.
+ * Test data generator for mod_diagnosis.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 /**
- * Creates image blog activity instances for tests.
+ * Creates diagnosis activity instances for tests.
  */
-class mod_imageblog_generator extends testing_module_generator {
+class mod_diagnosis_generator extends testing_module_generator {
     /**
-     * Create a new image blog instance, filling in sensible defaults for the case fields.
+     * Create a new diagnosis instance, filling in sensible defaults for the case fields.
      *
      * @param array|stdClass|null $record instance overrides (course is required)
      * @param array|null $options generator options passed through to the parent
@@ -42,12 +42,7 @@ class mod_imageblog_generator extends testing_module_generator {
             'revealtext' => 'The outcome was pneumonia.',
             'revealed' => 0,
             'grade' => 100,
-            'casedifficulty' => 1,
-            'difficultyscale' => '1, 1.5, 2, 3, 5',
-            'participationfactor' => 0.5,
-            'correctfactor' => 1.0,
-            'bestfactor' => 1.0,
-            'bestdiagnosisid' => 0,
+            'completionsubmit' => 0,
         ];
         foreach ($defaults as $name => $value) {
             if (!isset($record->{$name})) {

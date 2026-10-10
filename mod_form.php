@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * The main settings form for an image blog instance.
+ * The main settings form for an diagnosis instance.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -25,16 +25,16 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/course/moodleform_mod.php');
-require_once($CFG->dirroot . '/mod/imageblog/lib.php');
+require_once($CFG->dirroot . '/mod/diagnosis/lib.php');
 
 /**
- * Instance settings form for the image blog activity.
+ * Instance settings form for the diagnosis activity.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class mod_imageblog_mod_form extends moodleform_mod {
+class mod_diagnosis_mod_form extends moodleform_mod {
     /**
      * Define the form fields.
      *
@@ -52,82 +52,57 @@ class mod_imageblog_mod_form extends moodleform_mod {
 
         $this->standard_intro_elements();
 
-        $mform->addElement('header', 'casehdr', get_string('casesettings', 'mod_imageblog'));
+        $mform->addElement('header', 'casehdr', get_string('casesettings', 'mod_diagnosis'));
 
-        $mform->addElement('textarea', 'casequestion', get_string('casequestion', 'mod_imageblog'), ['rows' => 6, 'cols' => 60]);
+        $mform->addElement('textarea', 'casequestion', get_string('casequestion', 'mod_diagnosis'), ['rows' => 6, 'cols' => 60]);
         $mform->setType('casequestion', PARAM_TEXT);
         $mform->addRule('casequestion', null, 'required', null, 'client');
 
-        $mform->addElement('text', 'correctdiagnosis', get_string('correctdiagnosis', 'mod_imageblog'), ['size' => 64]);
+        $mform->addElement('text', 'correctdiagnosis', get_string('correctdiagnosis', 'mod_diagnosis'), ['size' => 64]);
         $mform->setType('correctdiagnosis', PARAM_TEXT);
         $mform->addRule('correctdiagnosis', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
-        $mform->addHelpButton('correctdiagnosis', 'correctdiagnosis', 'mod_imageblog');
+        $mform->addHelpButton('correctdiagnosis', 'correctdiagnosis', 'mod_diagnosis');
 
-        $mform->addElement('textarea', 'revealtext', get_string('revealtext', 'mod_imageblog'), ['rows' => 6, 'cols' => 60]);
+        $mform->addElement('textarea', 'revealtext', get_string('revealtext', 'mod_diagnosis'), ['rows' => 6, 'cols' => 60]);
         $mform->setType('revealtext', PARAM_TEXT);
 
         // Optional 360 degree panorama image, shown as an interactive viewer on the case.
-        $mform->addElement('advcheckbox', 'haspanorama', get_string('haspanorama', 'mod_imageblog'));
+        $mform->addElement('advcheckbox', 'haspanorama', get_string('haspanorama', 'mod_diagnosis'));
         $mform->setType('haspanorama', PARAM_BOOL);
-        $mform->addHelpButton('haspanorama', 'haspanorama', 'mod_imageblog');
+        $mform->addHelpButton('haspanorama', 'haspanorama', 'mod_diagnosis');
 
         $mform->addElement(
             'filemanager',
             'panorama_image',
-            get_string('panorama', 'mod_imageblog'),
+            get_string('panorama', 'mod_diagnosis'),
             null,
-            imageblog_panorama_filemanager_options()
+            diagnosis_panorama_filemanager_options()
         );
-        $mform->addHelpButton('panorama_image', 'panorama', 'mod_imageblog');
+        $mform->addHelpButton('panorama_image', 'panorama', 'mod_diagnosis');
         $mform->hideIf('panorama_image', 'haspanorama', 'notchecked');
 
         // Optional 3D model, shown as an interactive viewer on the case.
-        $mform->addElement('advcheckbox', 'hasmodel', get_string('hasmodel', 'mod_imageblog'));
+        $mform->addElement('advcheckbox', 'hasmodel', get_string('hasmodel', 'mod_diagnosis'));
         $mform->setType('hasmodel', PARAM_BOOL);
-        $mform->addHelpButton('hasmodel', 'hasmodel', 'mod_imageblog');
+        $mform->addHelpButton('hasmodel', 'hasmodel', 'mod_diagnosis');
 
         $mform->addElement(
             'filemanager',
             'model_file',
-            get_string('model', 'mod_imageblog'),
+            get_string('model', 'mod_diagnosis'),
             null,
-            imageblog_model_filemanager_options()
+            diagnosis_model_filemanager_options()
         );
-        $mform->addHelpButton('model_file', 'model', 'mod_imageblog');
+        $mform->addHelpButton('model_file', 'model', 'mod_diagnosis');
         $mform->hideIf('model_file', 'hasmodel', 'notchecked');
-
-        $levels = [1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5];
-        $mform->addElement('select', 'casedifficulty', get_string('casedifficulty', 'mod_imageblog'), $levels);
-        $mform->setType('casedifficulty', PARAM_INT);
-        $mform->setDefault('casedifficulty', 1);
-        $mform->addHelpButton('casedifficulty', 'casedifficulty', 'mod_imageblog');
-
-        $mform->addElement('text', 'difficultyscale', get_string('difficultyscale', 'mod_imageblog'), ['size' => 32]);
-        $mform->setType('difficultyscale', PARAM_TEXT);
-        $mform->setDefault('difficultyscale', '1, 1.5, 2, 3, 5');
-        $mform->addRule('difficultyscale', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
-        $mform->addHelpButton('difficultyscale', 'difficultyscale', 'mod_imageblog');
-
-        $mform->addElement('text', 'correctfactor', get_string('correctfactor', 'mod_imageblog'), ['size' => 8]);
-        $mform->setType('correctfactor', PARAM_FLOAT);
-        $mform->setDefault('correctfactor', 1.0);
-
-        $mform->addElement('text', 'participationfactor', get_string('participationfactor', 'mod_imageblog'), ['size' => 8]);
-        $mform->setType('participationfactor', PARAM_FLOAT);
-        $mform->setDefault('participationfactor', 0.5);
-
-        $mform->addElement('text', 'bestfactor', get_string('bestfactor', 'mod_imageblog'), ['size' => 8]);
-        $mform->setType('bestfactor', PARAM_FLOAT);
-        $mform->setDefault('bestfactor', 1.0);
-        $mform->addHelpButton('bestfactor', 'bestfactor', 'mod_imageblog');
 
         $mform->addElement(
             'tags',
             'casetags',
-            get_string('casetags', 'mod_imageblog'),
-            ['itemtype' => 'imageblog', 'component' => 'mod_imageblog']
+            get_string('casetags', 'mod_diagnosis'),
+            ['itemtype' => 'diagnosis', 'component' => 'mod_diagnosis']
         );
-        $mform->addHelpButton('casetags', 'casetags', 'mod_imageblog');
+        $mform->addHelpButton('casetags', 'casetags', 'mod_diagnosis');
 
         $this->standard_grading_coursemodule_elements();
         $this->standard_coursemodule_elements();
@@ -149,9 +124,9 @@ class mod_imageblog_mod_form extends moodleform_mod {
             'checkbox',
             $completionsubmitel,
             '',
-            get_string('completionsubmit', 'mod_imageblog')
+            get_string('completionsubmit', 'mod_diagnosis')
         );
-        $mform->addHelpButton($completionsubmitel, 'completionsubmit', 'mod_imageblog');
+        $mform->addHelpButton($completionsubmitel, 'completionsubmit', 'mod_diagnosis');
 
         return [$completionsubmitel];
     }
@@ -178,8 +153,8 @@ class mod_imageblog_mod_form extends moodleform_mod {
 
         if (!empty($this->current->id)) {
             $defaultvalues['casetags'] = \core_tag_tag::get_item_tags_array(
-                'mod_imageblog',
-                'imageblog',
+                'mod_diagnosis',
+                'diagnosis',
                 $this->current->id
             );
         }
@@ -190,17 +165,17 @@ class mod_imageblog_mod_form extends moodleform_mod {
         file_prepare_draft_area(
             $draftitemid,
             $this->context->id,
-            'mod_imageblog',
+            'mod_diagnosis',
             'panorama',
             0,
-            imageblog_panorama_filemanager_options()
+            diagnosis_panorama_filemanager_options()
         );
         $defaultvalues['panorama_image'] = $draftitemid;
 
         $haspanorama = 0;
         if (!empty($this->current->id)) {
             $fs = get_file_storage();
-            if ($fs->get_area_files($this->context->id, 'mod_imageblog', 'panorama', 0, 'id', false)) {
+            if ($fs->get_area_files($this->context->id, 'mod_diagnosis', 'panorama', 0, 'id', false)) {
                 $haspanorama = 1;
             }
         }
@@ -212,17 +187,17 @@ class mod_imageblog_mod_form extends moodleform_mod {
         file_prepare_draft_area(
             $modeldraftid,
             $this->context->id,
-            'mod_imageblog',
+            'mod_diagnosis',
             'model',
             0,
-            imageblog_model_filemanager_options()
+            diagnosis_model_filemanager_options()
         );
         $defaultvalues['model_file'] = $modeldraftid;
 
         $hasmodel = 0;
         if (!empty($this->current->id)) {
             $fs = get_file_storage();
-            if ($fs->get_area_files($this->context->id, 'mod_imageblog', 'model', 0, 'id', false)) {
+            if ($fs->get_area_files($this->context->id, 'mod_diagnosis', 'model', 0, 'id', false)) {
                 $hasmodel = 1;
             }
         }
@@ -243,26 +218,13 @@ class mod_imageblog_mod_form extends moodleform_mod {
         // grade value). This activity grades on points only, so reject a scale
         // selection rather than silently creating an ungraded activity.
         if (isset($data['grade']) && (int) $data['grade'] < 0) {
-            $errors['grade'] = get_string('gradescalesnotsupported', 'mod_imageblog');
+            $errors['grade'] = get_string('gradescalesnotsupported', 'mod_diagnosis');
         }
 
         // Guard the expected diagnosis against the 255-character column limit
         // server-side (the client rule can be bypassed).
         if (isset($data['correctdiagnosis']) && core_text::strlen($data['correctdiagnosis']) > 255) {
             $errors['correctdiagnosis'] = get_string('maximumchars', '', 255);
-        }
-
-        // Apply the same server-side length guard to the difficulty scale.
-        if (isset($data['difficultyscale']) && core_text::strlen($data['difficultyscale']) > 255) {
-            $errors['difficultyscale'] = get_string('maximumchars', '', 255);
-        }
-
-        // Scoring factors are fractions of full marks; a negative factor is
-        // meaningless (the engine floors it to zero), so reject it outright.
-        foreach (['participationfactor', 'correctfactor', 'bestfactor'] as $factorfield) {
-            if (isset($data[$factorfield]) && (float) $data[$factorfield] < 0) {
-                $errors[$factorfield] = get_string('factornotnegative', 'mod_imageblog');
-            }
         }
 
         // The file picker accepts any type (Moodle cannot restrict to the 3D
@@ -273,9 +235,9 @@ class mod_imageblog_mod_form extends moodleform_mod {
         if (!empty($data['hasmodel']) && !empty($data['model_file'])) {
             $unaccepted = $this->draft_unaccepted_model_files((int) $data['model_file']);
             if ($unaccepted) {
-                $errors['model_file'] = get_string('modelunacceptedfile', 'mod_imageblog', implode(', ', $unaccepted));
+                $errors['model_file'] = get_string('modelunacceptedfile', 'mod_diagnosis', implode(', ', $unaccepted));
             } else if (!$this->draft_has_main_model((int) $data['model_file'])) {
-                $errors['model_file'] = get_string('modelnomainfile', 'mod_imageblog');
+                $errors['model_file'] = get_string('modelnomainfile', 'mod_diagnosis');
             }
         }
 
@@ -300,7 +262,7 @@ class mod_imageblog_mod_form extends moodleform_mod {
         $draftfiles = $fs->get_area_files($usercontext->id, 'user', 'draft', $draftitemid, 'filename', false);
         $rejected = [];
         foreach ($draftfiles as $file) {
-            if (!imageblog_model_file_accepted($file->get_filename())) {
+            if (!diagnosis_model_file_accepted($file->get_filename())) {
                 $rejected[] = $file->get_filename();
             }
         }
@@ -322,7 +284,7 @@ class mod_imageblog_mod_form extends moodleform_mod {
         $usercontext = context_user::instance($USER->id);
         $fs = get_file_storage();
         $draftfiles = $fs->get_area_files($usercontext->id, 'user', 'draft', $draftitemid, 'filename', false);
-        $modelexts = array_map(fn($ext) => ltrim($ext, '.'), imageblog_model_extensions());
+        $modelexts = array_map(fn($ext) => ltrim($ext, '.'), diagnosis_model_extensions());
         foreach ($draftfiles as $file) {
             $ext = core_text::strtolower(pathinfo($file->get_filename(), PATHINFO_EXTENSION));
             if (in_array($ext, $modelexts, true)) {

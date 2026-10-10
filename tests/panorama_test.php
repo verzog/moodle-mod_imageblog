@@ -14,21 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace mod_imageblog;
+namespace mod_diagnosis;
 
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
-require_once($CFG->dirroot . '/mod/imageblog/lib.php');
+require_once($CFG->dirroot . '/mod/diagnosis/lib.php');
 
 /**
  * Tests for the 360 degree panorama image support.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers     ::imageblog_get_panorama_url
- * @covers     ::imageblog_save_panorama
+ * @covers     ::diagnosis_get_panorama_url
+ * @covers     ::diagnosis_save_panorama
  */
 final class panorama_test extends \advanced_testcase {
     /**
@@ -41,7 +41,7 @@ final class panorama_test extends \advanced_testcase {
     protected function store_panorama(\context_module $context, string $filename = 'pano.jpg'): void {
         get_file_storage()->create_file_from_string([
             'contextid' => $context->id,
-            'component' => 'mod_imageblog',
+            'component' => 'mod_diagnosis',
             'filearea' => 'panorama',
             'itemid' => 0,
             'filepath' => '/',
@@ -56,12 +56,12 @@ final class panorama_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course();
-        /** @var \mod_imageblog_generator $generator */
-        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
-        $imageblog = $generator->create_instance(['course' => $course->id]);
-        $context = \context_module::instance($imageblog->cmid);
+        /** @var \mod_diagnosis_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_diagnosis');
+        $diagnosis = $generator->create_instance(['course' => $course->id]);
+        $context = \context_module::instance($diagnosis->cmid);
 
-        $this->assertNull(imageblog_get_panorama_url($context));
+        $this->assertNull(diagnosis_get_panorama_url($context));
     }
 
     /**
@@ -72,17 +72,17 @@ final class panorama_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course();
-        /** @var \mod_imageblog_generator $generator */
-        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
-        $imageblog = $generator->create_instance(['course' => $course->id]);
-        $context = \context_module::instance($imageblog->cmid);
+        /** @var \mod_diagnosis_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_diagnosis');
+        $diagnosis = $generator->create_instance(['course' => $course->id]);
+        $context = \context_module::instance($diagnosis->cmid);
 
         $this->store_panorama($context);
 
-        $url = imageblog_get_panorama_url($context);
+        $url = diagnosis_get_panorama_url($context);
         $this->assertInstanceOf(\moodle_url::class, $url);
         $out = $url->out(false);
-        $this->assertStringContainsString('/mod_imageblog/panorama/', $out);
+        $this->assertStringContainsString('/mod_diagnosis/panorama/', $out);
         $this->assertStringContainsString('pano.jpg', $out);
         // The single-file area omits the itemid segment, so the area is followed
         // directly by the filename rather than a "/0/" itemid.
@@ -96,19 +96,19 @@ final class panorama_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $course = $this->getDataGenerator()->create_course();
-        /** @var \mod_imageblog_generator $generator */
-        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
-        $imageblog = $generator->create_instance(['course' => $course->id]);
-        $context = \context_module::instance($imageblog->cmid);
+        /** @var \mod_diagnosis_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_diagnosis');
+        $diagnosis = $generator->create_instance(['course' => $course->id]);
+        $context = \context_module::instance($diagnosis->cmid);
 
         $this->store_panorama($context);
-        $this->assertNotNull(imageblog_get_panorama_url($context));
+        $this->assertNotNull(diagnosis_get_panorama_url($context));
 
         // A draft id is present (the filemanager always submits one) but the
         // toggle is off, so the stored image must be removed.
         $data = (object) ['haspanorama' => 0, 'panorama_image' => 123];
-        imageblog_save_panorama($data, $context);
+        diagnosis_save_panorama($data, $context);
 
-        $this->assertNull(imageblog_get_panorama_url($context));
+        $this->assertNull(diagnosis_get_panorama_url($context));
     }
 }

@@ -15,69 +15,57 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * English language strings for mod_imageblog.
+ * English language strings for mod_diagnosis.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['alldiagnoses'] = 'All diagnoses';
 $string['answer'] = 'Answer';
 $string['answerquestion'] = 'Answer';
 $string['answersaved'] = 'The answer has been saved.';
 $string['askedby'] = 'Asked by {$a}';
 $string['askquestion'] = 'Ask a question';
-$string['bestanswer'] = 'Best answer';
-$string['bestanswerlocked'] = 'Another change to the best answer is in progress. Please try again in a moment.';
-$string['bestfactor'] = 'Best-answer factor';
-$string['bestfactor_help'] = 'Fraction of full marks for the diagnosis the teacher marks as best. It overrides the correct and participation factors for that one submission, then is scaled by the case difficulty and capped at the maximum grade.';
-$string['bestupdated'] = 'The best answer has been updated.';
 $string['case'] = 'Clinical case';
 $string['casealreadyrevealed'] = 'The case outcome was revealed before your diagnosis could be saved, so it was not recorded.';
-$string['casedifficulty'] = 'Case difficulty';
-$string['casedifficulty_help'] = 'The difficulty level of this case. A higher level applies a larger multiplier from the difficulty scale, so an answer on a harder case is worth proportionally more, up to the maximum grade.';
 $string['casequestion'] = 'Case question';
 $string['casesettings'] = 'Case';
 $string['casetags'] = 'Case tags';
 $string['casetags_help'] = 'Tags that classify this case, for example by body system, imaging modality or specialty. Readers can follow a tag to find other cases that share it.';
-$string['clearbest'] = 'Clear';
 $string['completionsubmit'] = 'Student must submit a diagnosis';
 $string['completionsubmit_help'] = 'When enabled, the activity is marked complete once the student has submitted a diagnosis.';
 $string['completionsubmitdesc'] = 'Submit a diagnosis';
 $string['correctdiagnosis'] = 'Expected diagnosis';
-$string['correctdiagnosis_help'] = 'The diagnosis treated as correct when scoring. A submission that matches this (ignoring case and surrounding spaces) earns the correct-answer factor; any other submission earns the participation factor. Both are then scaled by the case difficulty.';
-$string['correctfactor'] = 'Correct-answer factor';
-$string['currentbest'] = 'Current best';
+$string['correctdiagnosis_help'] = 'The expected diagnosis for this case. It is shown to readers, together with the explanation, when you reveal the outcome.';
 $string['diagnosis'] = 'Your diagnosis';
+$string['diagnosis:addinstance'] = 'Add a new diagnosis activity';
+$string['diagnosis:answerquestion'] = 'Answer a question on a case';
+$string['diagnosis:askquestion'] = 'Ask a question about a case';
+$string['diagnosis:reveal'] = 'Reveal the case outcome and mark submissions';
+$string['diagnosis:submit'] = 'Submit a diagnosis';
+$string['diagnosis:view'] = 'View a diagnosis activity';
 $string['diagnosissaved'] = 'Your diagnosis has been saved.';
-$string['difficultyscale'] = 'Difficulty scale';
-$string['difficultyscale_help'] = 'Comma-separated multipliers, one per difficulty level (level 1 first), e.g. "1, 1.5, 2, 3, 5". The multiplier for the selected case difficulty scales the score before the maximum-grade cap.';
 $string['editanswer'] = 'Edit answer';
 $string['editgrade'] = 'Edit grade';
-$string['factornotnegative'] = 'The factor cannot be negative.';
+$string['expecteddiagnosis'] = 'Expected diagnosis: {$a}';
 $string['gradediagnosis'] = 'Grade';
 $string['gradeheading'] = 'Grade submissions';
 $string['gradeitem:submissions'] = 'Submissions';
+$string['gradenotnumeric'] = 'Enter a number for the grade.';
+$string['gradeoutof'] = 'Grade out of {$a}';
+$string['gradeoutofrange'] = 'The grade must be between 0 and {$a}.';
 $string['gradesaved'] = 'The grade has been saved.';
 $string['gradescalesnotsupported'] = 'This activity grades on points only. Choose "Point" and set a maximum grade.';
 $string['gradeuser'] = 'Grade: {$a}';
-$string['gradingnotactive'] = 'No advanced grading method is active for this activity, so there is nothing to grade here.';
+$string['gradingdisabled'] = 'This activity has grading turned off (maximum grade 0), so there is nothing to mark.';
 $string['hasmodel'] = 'Include a 3D model';
 $string['hasmodel_help'] = 'Tick to add an interactive 3D model to the case. Leave it unticked to keep the model uploader hidden and to remove any model already uploaded.';
 $string['haspanorama'] = 'Include a 360° panorama';
 $string['haspanorama_help'] = 'Tick to add an interactive 360° panorama to the case. Leave it unticked to keep the panorama uploader hidden and to remove any image already uploaded.';
-$string['imageblog:addinstance'] = 'Add a new image blog activity';
-$string['imageblog:answerquestion'] = 'Answer a question on a case';
-$string['imageblog:askquestion'] = 'Ask a question about a case';
-$string['imageblog:reveal'] = 'Reveal the case outcome';
-$string['imageblog:submit'] = 'Submit a diagnosis';
-$string['imageblog:view'] = 'View an image blog activity';
-$string['markbest'] = 'Mark as best';
-$string['messagebody_outcomerevealed'] = 'The outcome of the case "{$a->name}" in {$a->course} has been revealed, and your diagnosis has been graded.';
-$string['messagebody_outcomerevealed_nograde'] = 'The outcome of the case "{$a->name}" in {$a->course} has been revealed.';
+$string['messagebody_outcomerevealed'] = 'The outcome of the case "{$a->name}" in {$a->course} has been revealed.';
 $string['messagebody_questionanswered'] = 'Your question on the case "{$a->name}" in {$a->course} has been answered.';
 $string['messagebody_questionposted'] = 'A reader asked a question on the case "{$a->name}" in {$a->course}.';
 $string['messageprovider:outcomerevealed'] = 'Case outcome revealed';
@@ -91,37 +79,36 @@ $string['model_help'] = 'Optional 3D model shown as an interactive viewer on the
 $string['modelnomainfile'] = 'Add a main model file (glTF/GLB, STL, PLY or OBJ), not only companion files such as .bin, .mtl or textures.';
 $string['modelunacceptedfile'] = 'These files are not accepted 3D model or companion types: {$a}. Allowed: glTF/GLB, STL, PLY and OBJ models, plus .bin, .mtl, .png, .jpg, .jpeg and .webp companions.';
 $string['modelunavailable'] = 'The 3D model could not be loaded.';
-$string['modulename'] = 'Image blog';
-$string['modulename_help'] = 'The image blog activity presents a clinical case. Readers submit a diagnosis, and once the outcome is revealed they receive a grade based on their answer.';
-$string['modulenameplural'] = 'Image blogs';
+$string['modulename'] = 'Diagnosis';
+$string['modulename_help'] = 'The diagnosis activity presents a clinical case: a prompt with optional images, a 360° panorama and a 3D model. Readers submit a diagnosis, and the teacher marks each submission with a simple grade or an advanced grading method such as a rubric. The teacher can also reveal the expected diagnosis and an explanation.';
+$string['modulenameplural'] = 'Diagnoses';
 $string['nodiagnoses'] = 'No diagnoses have been submitted yet.';
 $string['nodiagnosistograde'] = 'This participant has not submitted a diagnosis to grade.';
-$string['noinstances'] = 'There are no image blog activities in this course.';
+$string['noinstances'] = 'There are no diagnosis activities in this course.';
 $string['noquestions'] = 'No questions have been asked yet.';
 $string['notanswered'] = 'Awaiting an answer.';
 $string['outcome'] = 'Outcome';
-$string['outcomerevealed'] = 'The case outcome has been revealed and grades have been awarded.';
+$string['outcomerevealed'] = 'The case outcome has been revealed.';
 $string['panorama'] = '360° panorama image';
 $string['panorama_help'] = 'Optional equirectangular (2:1) image rendered as an interactive 360° viewer on the case. Drag to look around; pinch or scroll to zoom. JPEG or PNG up to 20 MB.';
 $string['panoramaunavailable'] = 'The 360° panorama could not be loaded.';
 $string['participant'] = 'A participant';
-$string['participationfactor'] = 'Participation factor';
-$string['pluginadministration'] = 'Image blog administration';
-$string['pluginname'] = 'Image blog';
-$string['privacy:metadata:imageblog_diagnoses'] = 'Diagnoses submitted by readers on a case.';
-$string['privacy:metadata:imageblog_diagnoses:diagnosis'] = 'The diagnosis text the reader submitted.';
-$string['privacy:metadata:imageblog_diagnoses:rubricgrade'] = 'The points awarded for the diagnosis using the advanced grading method (e.g. a rubric).';
-$string['privacy:metadata:imageblog_diagnoses:timecreated'] = 'The time the diagnosis was first submitted.';
-$string['privacy:metadata:imageblog_diagnoses:timemodified'] = 'The time the diagnosis was last updated.';
-$string['privacy:metadata:imageblog_diagnoses:userid'] = 'The user who submitted the diagnosis.';
-$string['privacy:metadata:imageblog_questions'] = 'Questions readers asked on a case, and the teacher answers.';
-$string['privacy:metadata:imageblog_questions:answer'] = 'The answer text, once the question has been answered.';
-$string['privacy:metadata:imageblog_questions:answeredby'] = 'The user who answered the question.';
-$string['privacy:metadata:imageblog_questions:question'] = 'The question text the reader asked.';
-$string['privacy:metadata:imageblog_questions:timeanswered'] = 'The time the question was answered.';
-$string['privacy:metadata:imageblog_questions:timecreated'] = 'The time the question was asked.';
-$string['privacy:metadata:imageblog_questions:timemodified'] = 'The time the question or answer was last changed.';
-$string['privacy:metadata:imageblog_questions:userid'] = 'The user who asked the question.';
+$string['pluginadministration'] = 'Diagnosis administration';
+$string['pluginname'] = 'Diagnosis';
+$string['privacy:metadata:diagnosis_questions'] = 'Questions readers asked on a case, and the teacher answers.';
+$string['privacy:metadata:diagnosis_questions:answer'] = 'The answer text, once the question has been answered.';
+$string['privacy:metadata:diagnosis_questions:answeredby'] = 'The user who answered the question.';
+$string['privacy:metadata:diagnosis_questions:question'] = 'The question text the reader asked.';
+$string['privacy:metadata:diagnosis_questions:timeanswered'] = 'The time the question was answered.';
+$string['privacy:metadata:diagnosis_questions:timecreated'] = 'The time the question was asked.';
+$string['privacy:metadata:diagnosis_questions:timemodified'] = 'The time the question or answer was last changed.';
+$string['privacy:metadata:diagnosis_questions:userid'] = 'The user who asked the question.';
+$string['privacy:metadata:diagnosis_submissions'] = 'Diagnoses submitted by readers on a case.';
+$string['privacy:metadata:diagnosis_submissions:diagnosis'] = 'The diagnosis text the reader submitted.';
+$string['privacy:metadata:diagnosis_submissions:grade'] = 'The points the teacher awarded for the diagnosis.';
+$string['privacy:metadata:diagnosis_submissions:timecreated'] = 'The time the diagnosis was first submitted.';
+$string['privacy:metadata:diagnosis_submissions:timemodified'] = 'The time the diagnosis was last updated.';
+$string['privacy:metadata:diagnosis_submissions:userid'] = 'The user who submitted the diagnosis.';
 $string['question'] = 'Your question';
 $string['questionasked'] = 'Your question has been posted.';
 $string['questionsheading'] = 'Questions & answers';
@@ -130,7 +117,7 @@ $string['revealtext'] = 'Outcome and explanation';
 $string['saveanswer'] = 'Save answer';
 $string['savegrade'] = 'Save grade';
 $string['submitdiagnosis'] = 'Submit diagnosis';
-$string['tagarea_imageblog'] = 'Image blog cases';
+$string['tagarea_diagnosis'] = 'Diagnosis cases';
 $string['yourdiagnosis'] = 'Your diagnosis: {$a}';
 $string['yourdiagnosisheading'] = 'Your diagnosis';
 $string['yourgrade'] = 'Your grade: {$a}';

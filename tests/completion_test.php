@@ -14,18 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace mod_imageblog;
+namespace mod_diagnosis;
 
 use cm_info;
-use mod_imageblog\completion\custom_completion;
+use mod_diagnosis\completion\custom_completion;
 
 /**
  * Tests for the "submit a diagnosis" custom completion rule.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers     \mod_imageblog\completion\custom_completion
+ * @covers     \mod_diagnosis\completion\custom_completion
  */
 final class completion_test extends \advanced_testcase {
     /**
@@ -42,15 +42,15 @@ final class completion_test extends \advanced_testcase {
         $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
         $student = $this->getDataGenerator()->create_and_enrol($course, 'student');
 
-        /** @var \mod_imageblog_generator $generator */
-        $generator = $this->getDataGenerator()->get_plugin_generator('mod_imageblog');
-        $imageblog = $generator->create_instance([
+        /** @var \mod_diagnosis_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_diagnosis');
+        $diagnosis = $generator->create_instance([
             'course' => $course->id,
             'completion' => COMPLETION_TRACKING_AUTOMATIC,
             'completionsubmit' => 1,
         ]);
 
-        $cm = cm_info::create(get_coursemodule_from_instance('imageblog', $imageblog->id));
+        $cm = cm_info::create(get_coursemodule_from_instance('diagnosis', $diagnosis->id));
 
         // No diagnosis yet: the rule is incomplete.
         $completion = new custom_completion($cm, (int) $student->id);
@@ -58,8 +58,8 @@ final class completion_test extends \advanced_testcase {
 
         // Record a diagnosis for the student.
         $now = time();
-        $DB->insert_record('imageblog_diagnoses', (object) [
-            'imageblogid' => $imageblog->id,
+        $DB->insert_record('diagnosis_submissions', (object) [
+            'diagnosisid' => $diagnosis->id,
             'userid' => $student->id,
             'diagnosis' => 'pneumonia',
             'timecreated' => $now,

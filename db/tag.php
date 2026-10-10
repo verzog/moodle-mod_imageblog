@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Tag areas for mod_imageblog.
+ * Tag areas for mod_diagnosis.
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -26,9 +26,9 @@ defined('MOODLE_INTERNAL') || die();
 
 $tagareas = [
     [
-        'itemtype' => 'imageblog',
-        'component' => 'mod_imageblog',
-        'callback' => 'mod_imageblog_get_tagged_cases',
-        'callbackfile' => '/mod/imageblog/lib.php',
+        'itemtype' => 'diagnosis',
+        'component' => 'mod_diagnosis',
+        'callback' => 'mod_diagnosis_get_tagged_cases',
+        'callbackfile' => '/mod/diagnosis/lib.php',
     ],
 ];

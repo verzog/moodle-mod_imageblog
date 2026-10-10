@@ -14,26 +14,27 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace mod_imageblog\form;
+namespace mod_diagnosis\form;
 
 /**
- * Form for a teacher to grade one submitted diagnosis with the active advanced
- * grading method (e.g. a rubric).
+ * Form for a teacher to mark one submitted diagnosis, using either simple direct
+ * grading (a point value) or the active advanced grading method (e.g. a rubric).
  *
- * @package    mod_imageblog
+ * @package    mod_diagnosis
  * @copyright  2026 Vernon Spain
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class grade_form extends \moodleform {
     /**
-     * Define the form fields: the grading element plus the identifiers needed
+     * Define the form fields: the grading control plus the identifiers needed
      * to persist the grade against the right submission.
      *
      * @return void
      */
     protected function definition() {
         $mform = $this->_form;
-        $gradinginstance = $this->_customdata['gradinginstance'];
+        $gradinginstance = $this->_customdata['gradinginstance'] ?? null;
+        $maxgrade = $this->_customdata['maxgrade'] ?? 0;
 
         $mform->addElement('hidden', 'id');
         $mform->setType('id', PARAM_INT);
@@ -41,18 +42,48 @@ class grade_form extends \moodleform {
         $mform->addElement('hidden', 'userid');
         $mform->setType('userid', PARAM_INT);
 
-        $mform->addElement(
-            'grading',
-            'advancedgrading',
-            get_string('gradenoun'),
-            ['gradinginstance' => $gradinginstance]
-        );
+        if ($gradinginstance) {
+            // Advanced grading: render the method's control (rubric, marking guide).
+            $mform->addElement(
+                'grading',
+                'advancedgrading',
+                get_string('gradenoun'),
+                ['gradinginstance' => $gradinginstance]
+            );
+            // Carry the created grading instance id so the submission reuses it
+            // rather than orphaning a fresh incomplete instance on each page load.
+            $mform->addElement('hidden', 'advancedgradinginstanceid', $gradinginstance->get_id());
+            $mform->setType('advancedgradinginstanceid', PARAM_INT);
+        } else {
+            // Simple direct grading: a point value out of the activity maximum.
+            $mform->addElement('text', 'grade', get_string('gradeoutof', 'mod_diagnosis', $maxgrade), ['size' => 8]);
+            $mform->setType('grade', PARAM_RAW);
+        }
 
-        // Carry the created grading instance id so the submission reuses it
-        // rather than orphaning a fresh incomplete instance on each page load.
-        $mform->addElement('hidden', 'advancedgradinginstanceid', $gradinginstance->get_id());
-        $mform->setType('advancedgradinginstanceid', PARAM_INT);
+        $this->add_action_buttons(true, get_string('savegrade', 'mod_diagnosis'));
+    }
 
-        $this->add_action_buttons(true, get_string('savegrade', 'mod_imageblog'));
+    /**
+     * Reject a simple grade outside the range 0..maximum.
+     *
+     * @param array $data the submitted values
+     * @param array $files the submitted files
+     * @return array field name => error string
+     */
+    public function validation($data, $files) {
+        $errors = parent::validation($data, $files);
+
+        // Only the simple-grading branch has a 'grade' text field to validate.
+        if (array_key_exists('grade', $data) && trim((string) $data['grade']) !== '') {
+            $value = unformat_float($data['grade']);
+            $maxgrade = $this->_customdata['maxgrade'] ?? 0;
+            if ($value === false || $value === null || !is_numeric($value)) {
+                $errors['grade'] = get_string('gradenotnumeric', 'mod_diagnosis');
+            } else if ($value < 0 || $value > $maxgrade) {
+                $errors['grade'] = get_string('gradeoutofrange', 'mod_diagnosis', $maxgrade);
+            }
+        }
+
+        return $errors;
     }
 }
